@@ -29,6 +29,7 @@ const CollaboratorsPage: React.FC = () => {
         email: '',
         telefone: '',
         valorHora: 0,
+        valorInssFixo: 0,
         login: '',
         senha: ''
       });
@@ -172,6 +173,16 @@ const CollaboratorsPage: React.FC = () => {
                     className="w-full bg-background border border-slate-600 rounded p-2 text-white focus:border-primary outline-none"
                     value={editingColab.valorHora || ''}
                     onChange={e => setEditingColab({ ...editingColab, valorHora: parseFloat(e.target.value) })}
+                  />
+                  </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Valor INSS Mensal (R$)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="w-full bg-background border border-slate-600 rounded p-2 text-white focus:border-primary outline-none"
+                    value={editingColab.valorInssFixo || 0}
+                    onChange={e => setEditingColab({ ...editingColab, valorInssFixo: parseFloat(e.target.value) })}
                   />
                 </div>
               </div>

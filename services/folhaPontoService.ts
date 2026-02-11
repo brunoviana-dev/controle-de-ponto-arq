@@ -32,7 +32,8 @@ const createEmptyMonth = (colaboradorId: string, mes: number, ano: number): Folh
         mes,
         ano,
         dias,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        statusPagamento: 'pendente'
     };
 };
 
@@ -60,7 +61,13 @@ export const getFolhaPonto = async (
             mes: data.mes,
             ano: data.ano,
             dias: data.dias as PontoDia[],
-            updatedAt: data.updated_at
+            updatedAt: data.updated_at,
+            valorTotalCalculado: data.valor_total_calculado,
+            valorInss: data.valor_inss,
+            valorPagoFinal: data.valor_pago_final,
+            snapshotValorHora: data.snapshot_valor_hora,
+            snapshotTotalHoras: data.snapshot_total_horas,
+            statusPagamento: data.status_pagamento || 'pendente'
         };
     }
 
@@ -77,7 +84,13 @@ export const saveFolhaPonto = async (folha: FolhaPonto): Promise<void> => {
         mes: folha.mes,
         ano: folha.ano,
         dias: folha.dias,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        valor_total_calculado: folha.valorTotalCalculado,
+        valor_inss: folha.valorInss,
+        valor_pago_final: folha.valorPagoFinal,
+        snapshot_valor_hora: folha.snapshotValorHora,
+        snapshot_total_horas: folha.snapshotTotalHoras,
+        status_pagamento: folha.statusPagamento
     };
 
     // Tentar fazer upsert baseado no constraint unique

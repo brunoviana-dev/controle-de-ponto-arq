@@ -18,6 +18,7 @@ export interface Colaborador {
   email: string;
   telefone: string;
   valorHora: number;
+  valorInssFixo?: number;
   login: string;
   senha?: string; // Only used for creation/auth check, not returned in lists ideally
   createdAt: string;
@@ -26,13 +27,13 @@ export interface Colaborador {
 export interface PontoDia {
   dia: number; // 1-31
   dataIso: string; // YYYY-MM-DD
-  
+
   // Normal
   entrada1: string; // HH:MM
   saida1: string;   // HH:MM (Almoço inicio)
   entrada2: string; // HH:MM (Almoço fim)
   saida2: string;   // HH:MM
-  
+
   // Extra
   extraEntrada1: string;
   extraSaida1: string; // Intervalo inicio
@@ -49,6 +50,14 @@ export interface FolhaPonto {
   ano: number;
   dias: PontoDia[];
   updatedAt: string;
+
+  // Payment fields
+  valorTotalCalculado?: number;
+  valorInss?: number;
+  valorPagoFinal?: number;
+  snapshotValorHora?: number;
+  snapshotTotalHoras?: number;
+  statusPagamento?: 'pendente' | 'pago';
 }
 
 export interface ResumoPagamento {
@@ -61,4 +70,7 @@ export interface ResumoPagamento {
   totalGeral: number;
   valorHora: number;
   totalPagar: number;
+  statusPagamento?: 'pendente' | 'pago';
+  valorTotalCalculado?: number;
+  valorInss?: number;
 }

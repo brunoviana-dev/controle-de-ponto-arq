@@ -75,16 +75,17 @@ const TimesheetPage: React.FC<TimesheetPageProps> = ({ adminView }) => {
     };
   }, [folha]);
 
+
   // Handlers
   const handleDayChange = (index: number, field: keyof PontoDia, value: string) => {
-    if (!folha) return;
+    if (!folha || folha.statusPagamento === 'pago') return;
     const newDias = [...folha.dias];
     newDias[index] = { ...newDias[index], [field]: value };
     setFolha({ ...folha, dias: newDias });
   };
 
   const handleSave = async () => {
-    if (!folha) return;
+    if (!folha || folha.statusPagamento === 'pago') return;
     setSaving(true);
     setFeedback('');
     try {
@@ -99,6 +100,8 @@ const TimesheetPage: React.FC<TimesheetPageProps> = ({ adminView }) => {
   };
 
   if (!selectedColabId && adminView && !loading) return <div className="p-8 text-center text-slate-500">Nenhum colaborador disponível.</div>;
+
+  const isLocked = folha?.statusPagamento === 'pago';
 
   return (
     <div className="space-y-6">
@@ -169,19 +172,29 @@ const TimesheetPage: React.FC<TimesheetPageProps> = ({ adminView }) => {
         {loading ? (
           <div className="text-center py-20 text-slate-500">Carregando folha...</div>
         ) : (
-          <div className="bg-surface rounded-xl border border-slate-700 overflow-hidden shadow-xl">
+          <div className={`bg-surface rounded-xl border ${isLocked ? 'border-green-500/30' : 'border-slate-700'} overflow-hidden shadow-xl transition-colors`}>
             {/* Sticky Action Bar */}
             <div className="sticky top-0 z-10 bg-surface/95 backdrop-blur border-b border-slate-700 p-4 flex justify-between items-center">
-              <h3 className="font-semibold text-slate-300">
+              <h3 className="font-semibold text-slate-300 flex items-center gap-3">
                 Folha de {getMonthName(selectedMonth)}/{selectedYear}
+                {isLocked && (
+                  <span className="bg-green-500/10 text-green-400 text-xs px-2 py-1 rounded border border-green-500/20 font-bold uppercase tracking-wider flex items-center gap-1">
+                    🔒 Mês Fechado
+                  </span>
+                )}
                 {feedback && <span className="ml-4 text-sm font-normal text-green-400 animate-pulse">{feedback}</span>}
               </h3>
               <button
                 onClick={handleSave}
-                disabled={saving}
-                className={`px-6 py-2 rounded font-semibold text-white transition-colors ${saving ? 'bg-slate-600' : 'bg-primary hover:bg-blue-600'}`}
+                disabled={saving || isLocked}
+                className={`px-6 py-2 rounded font-semibold text-white transition-colors ${isLocked
+                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                    : saving
+                      ? 'bg-slate-600'
+                      : 'bg-primary hover:bg-blue-600'
+                  }`}
               >
-                {saving ? 'Salvando...' : 'Salvar Folha'}
+                {isLocked ? 'Pagamento Realizado' : saving ? 'Salvando...' : 'Salvar Folha'}
               </button>
             </div>
 
@@ -228,24 +241,25 @@ const TimesheetPage: React.FC<TimesheetPageProps> = ({ adminView }) => {
                         </td>
 
                         {/* Normal Hours */}
-                        <td className="p-1"><input type="time" className="time-input" value={dia.entrada1} onChange={(e) => handleDayChange(index, 'entrada1', e.target.value)} /></td>
-                        <td className="p-1"><input type="time" className="time-input" value={dia.saida1} onChange={(e) => handleDayChange(index, 'saida1', e.target.value)} /></td>
-                        <td className="p-1"><input type="time" className="time-input" value={dia.entrada2} onChange={(e) => handleDayChange(index, 'entrada2', e.target.value)} /></td>
-                        <td className="p-1"><input type="time" className="time-input" value={dia.saida2} onChange={(e) => handleDayChange(index, 'saida2', e.target.value)} /></td>
+                        <td className="p-1"><input disabled={isLocked} type="time" className={`time-input ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`} value={dia.entrada1} onChange={(e) => handleDayChange(index, 'entrada1', e.target.value)} /></td>
+                        <td className="p-1"><input disabled={isLocked} type="time" className={`time-input ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`} value={dia.saida1} onChange={(e) => handleDayChange(index, 'saida1', e.target.value)} /></td>
+                        <td className="p-1"><input disabled={isLocked} type="time" className={`time-input ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`} value={dia.entrada2} onChange={(e) => handleDayChange(index, 'entrada2', e.target.value)} /></td>
+                        <td className="p-1"><input disabled={isLocked} type="time" className={`time-input ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`} value={dia.saida2} onChange={(e) => handleDayChange(index, 'saida2', e.target.value)} /></td>
                         <td className="p-2 font-mono font-bold bg-slate-800/20">{normalTotal > 0 ? minutesToTime(normalTotal) : ''}</td>
 
                         {/* Extra Hours */}
-                        <td className="p-1 border-l border-slate-700"><input type="time" className="time-input text-accent" value={dia.extraEntrada1} onChange={(e) => handleDayChange(index, 'extraEntrada1', e.target.value)} /></td>
-                        <td className="p-1"><input type="time" className="time-input text-accent" value={dia.extraSaida1} onChange={(e) => handleDayChange(index, 'extraSaida1', e.target.value)} /></td>
-                        <td className="p-1"><input type="time" className="time-input text-accent" value={dia.extraEntrada2} onChange={(e) => handleDayChange(index, 'extraEntrada2', e.target.value)} /></td>
-                        <td className="p-1"><input type="time" className="time-input text-accent" value={dia.extraSaida2} onChange={(e) => handleDayChange(index, 'extraSaida2', e.target.value)} /></td>
+                        <td className="p-1 border-l border-slate-700"><input disabled={isLocked} type="time" className={`time-input text-accent ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`} value={dia.extraEntrada1} onChange={(e) => handleDayChange(index, 'extraEntrada1', e.target.value)} /></td>
+                        <td className="p-1"><input disabled={isLocked} type="time" className={`time-input text-accent ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`} value={dia.extraSaida1} onChange={(e) => handleDayChange(index, 'extraSaida1', e.target.value)} /></td>
+                        <td className="p-1"><input disabled={isLocked} type="time" className={`time-input text-accent ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`} value={dia.extraEntrada2} onChange={(e) => handleDayChange(index, 'extraEntrada2', e.target.value)} /></td>
+                        <td className="p-1"><input disabled={isLocked} type="time" className={`time-input text-accent ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`} value={dia.extraSaida2} onChange={(e) => handleDayChange(index, 'extraSaida2', e.target.value)} /></td>
                         <td className="p-2 font-mono font-bold text-accent bg-slate-800/20">{extraTotal > 0 ? minutesToTime(extraTotal) : ''}</td>
 
                         {/* Obs */}
                         <td className="p-1 border-l border-slate-700">
                           <input
                             type="text"
-                            className="w-full bg-transparent text-xs text-slate-300 p-1 outline-none border-b border-transparent focus:border-slate-500 placeholder-slate-600"
+                            disabled={isLocked}
+                            className={`w-full bg-transparent text-xs text-slate-300 p-1 outline-none border-b border-transparent focus:border-slate-500 placeholder-slate-600 ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                             placeholder="Obs..."
                             value={dia.observacoes}
                             onChange={(e) => handleDayChange(index, 'observacoes', e.target.value)}

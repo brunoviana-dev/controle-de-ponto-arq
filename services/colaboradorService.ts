@@ -7,7 +7,7 @@ import { Colaborador } from './interfaces/types';
 export const getColaboradores = async (): Promise<Colaborador[]> => {
     const { data, error } = await supabase
         .from('colaboradores')
-        .select('id, nome, email, telefone, valor_hora, login, created_at')
+        .select('id, nome, email, telefone, valor_hora, valor_inss_fixo, login, created_at')
         .order('nome');
 
     if (error) {
@@ -21,6 +21,7 @@ export const getColaboradores = async (): Promise<Colaborador[]> => {
         email: c.email,
         telefone: c.telefone,
         valorHora: c.valor_hora,
+        valorInssFixo: c.valor_inss_fixo,
         login: c.login,
         createdAt: c.created_at
     }));
@@ -32,7 +33,7 @@ export const getColaboradores = async (): Promise<Colaborador[]> => {
 export const getColaboradorById = async (id: string): Promise<Colaborador | undefined> => {
     const { data, error } = await supabase
         .from('colaboradores')
-        .select('id, nome, email, telefone, valor_hora, login, created_at')
+        .select('id, nome, email, telefone, valor_hora, valor_inss_fixo, login, created_at')
         .eq('id', id)
         .single();
 
@@ -46,6 +47,7 @@ export const getColaboradorById = async (id: string): Promise<Colaborador | unde
         email: data.email,
         telefone: data.telefone,
         valorHora: data.valor_hora,
+        valorInssFixo: data.valor_inss_fixo,
         login: data.login,
         createdAt: data.created_at
     };
@@ -62,6 +64,7 @@ export const saveColaborador = async (colab: Partial<Colaborador>): Promise<void
             email: colab.email,
             telefone: colab.telefone,
             valor_hora: colab.valorHora,
+            valor_inss_fixo: colab.valorInssFixo || 0,
             login: colab.login
         };
 
@@ -87,6 +90,7 @@ export const saveColaborador = async (colab: Partial<Colaborador>): Promise<void
                 email: colab.email,
                 telefone: colab.telefone,
                 valor_hora: colab.valorHora,
+                valor_inss_fixo: colab.valorInssFixo || 0,
                 login: colab.login,
                 senha_hash: colab.senha || 'senha123' // Em produção, usar bcrypt
             });
