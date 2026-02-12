@@ -115,7 +115,7 @@ const ProjetoDetailPage: React.FC = () => {
             // Reload etapas to get the joined collaborator name correctly
             const etapasData = await getEtapasByProjeto(id!);
             setEtapas(etapasData);
-            
+
             setEditingEtapaId(null);
 
             // Update project status in local state
