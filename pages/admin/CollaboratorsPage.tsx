@@ -105,13 +105,13 @@ const CollaboratorsPage: React.FC = () => {
                       <td className="px-6 py-4 text-right space-x-2">
                         <button
                           onClick={() => handleOpenModal(colab)}
-                          className="text-slate-400 hover:text-white transition-colors"
+                          className="inline-block text-xs px-2 py-1 rounded border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors"
                         >
                           Editar
                         </button>
                         <button
                           onClick={() => handleDelete(colab.id)}
-                          className="text-red-400 hover:text-red-300 transition-colors"
+                          className="inline-block text-xs px-2 py-1 rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
                         >
                           Excluir
                         </button>
@@ -174,7 +174,7 @@ const CollaboratorsPage: React.FC = () => {
                     value={editingColab.valorHora || ''}
                     onChange={e => setEditingColab({ ...editingColab, valorHora: parseFloat(e.target.value) })}
                   />
-                  </div>
+                </div>
                 <div>
                   <label className="block text-xs text-slate-400 mb-1">Valor INSS Mensal (R$)</label>
                   <input
