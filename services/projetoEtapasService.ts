@@ -1,20 +1,57 @@
 import { supabase } from './supabaseClient';
-import { ProjetoEtapa, UserRole } from './interfaces/types';
+import { ProjetoEtapa } from './interfaces/types';
 import { getCurrentUser } from './authService';
 
 const ensureAdmin = () => {
     const user = getCurrentUser();
-    if (user?.role !== UserRole.ADMIN) {
+    if (user?.role !== 'admin') {
         throw new Error('Acesso negado: Apenas administradores podem realizar esta ação.');
     }
 };
 
 /**
- * Retorna todas as etapas de um projeto com join opcional para colaborador
+ * Sincroniza o status do projeto com base nas suas etapas
+ */
+const syncProjetoStatus = async (projetoId: string) => {
+    const { data: etapas, error: errorEtapas } = await supabase
+        .from('projeto_etapas')
+        .select('status')
+        .eq('projeto_id', projetoId);
+
+    if (errorEtapas || !etapas) return;
+
+    let novoStatus: 'planejamento' | 'em_andamento' | 'concluido' | 'cancelado' = 'planejamento';
+
+    if (etapas.length > 0) {
+        const total = etapas.length;
+        const concluidas = etapas.filter(e => e.status === 'concluido').length;
+        const emAndamento = etapas.filter(e => e.status === 'em_andamento').length;
+        const canceladas = etapas.filter(e => e.status === 'cancelado').length;
+        const naoIniciadas = etapas.filter(e => e.status === 'nao_iniciado').length;
+
+        if (canceladas === total) {
+            novoStatus = 'cancelado';
+        } else if (concluidas + canceladas === total) {
+            novoStatus = 'concluido';
+        } else if (emAndamento > 0 || (naoIniciadas < total && concluidas > 0)) {
+            novoStatus = 'em_andamento';
+        } else {
+            novoStatus = 'planejamento';
+        }
+    }
+
+    await supabase
+        .from('projetos')
+        .update({ status: novoStatus, updated_at: new Date().toISOString() })
+        .eq('id', projetoId);
+
+    return novoStatus;
+};
+
+/**
+ * Retorna as etapas de um projeto
  */
 export const getEtapasByProjeto = async (projetoId: string): Promise<ProjetoEtapa[]> => {
-    ensureAdmin();
-
     const { data, error } = await supabase
         .from('projeto_etapas')
         .select(`
@@ -44,49 +81,7 @@ export const getEtapasByProjeto = async (projetoId: string): Promise<ProjetoEtap
 };
 
 /**
- * Sincroniza o status do projeto com base no status de suas etapas
- */
-const syncProjetoStatus = async (projetoId: string): Promise<string> => {
-    // Busca todas as etapas atuais do projeto
-    const { data: etapas, error: errorEtapas } = await supabase
-        .from('projeto_etapas')
-        .select('status')
-        .eq('projeto_id', projetoId);
-
-    if (errorEtapas) throw errorEtapas;
-
-    if (!etapas || etapas.length === 0) return 'planejamento';
-
-    const total = etapas.length;
-    const countNaoIniciado = etapas.filter(e => e.status === 'nao_iniciado').length;
-    const countConcluido = etapas.filter(e => e.status === 'concluido').length;
-    const countCancelado = etapas.filter(e => e.status === 'cancelado').length;
-    const countEmAndamento = etapas.filter(e => e.status === 'em_andamento').length;
-
-    let novoStatus = 'em_andamento';
-
-    if (countNaoIniciado === total) {
-        novoStatus = 'planejamento';
-    } else if (countCancelado === total) {
-        novoStatus = 'cancelado';
-    } else if (countConcluido + countCancelado === total) {
-        novoStatus = 'concluido';
-    } else if (countEmAndamento > 0 || (countConcluido > 0 && countNaoIniciado > 0)) {
-        novoStatus = 'em_andamento';
-    }
-
-    const { error: errorUpdate } = await supabase
-        .from('projetos')
-        .update({ status: novoStatus })
-        .eq('id', projetoId);
-
-    if (errorUpdate) throw errorUpdate;
-
-    return novoStatus;
-};
-
-/**
- * Cria uma nova etapa para um projeto
+ * Cria uma nova etapa
  */
 export const createEtapa = async (etapa: Omit<ProjetoEtapa, 'id' | 'createdAt' | 'updatedAt' | 'colaborador'>): Promise<ProjetoEtapa> => {
     ensureAdmin();
@@ -131,19 +126,13 @@ export const createEtapa = async (etapa: Omit<ProjetoEtapa, 'id' | 'createdAt' |
 };
 
 /**
- * Atualiza uma etapa existente e retorna o novo status do projeto
+ * Atualiza uma etapa
  */
-export const updateEtapa = async (id: string, etapa: Partial<Omit<ProjetoEtapa, 'id' | 'projetoId' | 'createdAt' | 'updatedAt' | 'colaborador'>>): Promise<string> => {
+export const updateEtapa = async (id: string, etapa: Partial<Omit<ProjetoEtapa, 'id' | 'projetoId' | 'createdAt' | 'updatedAt' | 'colaborador'>>): Promise<any> => {
     ensureAdmin();
 
-    // Primeiro precisamos do projetoId se não foi passado (e não é passado no update)
-    const { data: etapaAtual, error: errorFetch } = await supabase
-        .from('projeto_etapas')
-        .select('projeto_id')
-        .eq('id', id)
-        .single();
-
-    if (errorFetch) throw errorFetch;
+    // Buscar projeto_id antes de atualizar para o sync
+    const { data: current } = await supabase.from('projeto_etapas').select('projeto_id').eq('id', id).single();
 
     const updateData: any = {};
     if (etapa.nomeEtapa !== undefined) updateData.nome_etapa = etapa.nomeEtapa;
@@ -162,24 +151,19 @@ export const updateEtapa = async (id: string, etapa: Partial<Omit<ProjetoEtapa, 
         throw new Error(`Erro ao atualizar etapa: ${error.message}`);
     }
 
-    // Sincroniza status do projeto e retorna o novo status
-    return await syncProjetoStatus(etapaAtual.projeto_id);
+    if (current?.projeto_id) {
+        return await syncProjetoStatus(current.projeto_id);
+    }
 };
 
 /**
- * Exclui uma etapa
+ * Deleta uma etapa
  */
-export const deleteEtapa = async (id: string): Promise<string> => {
+export const deleteEtapa = async (id: string): Promise<any> => {
     ensureAdmin();
 
-    // Busca o projeto_id antes de deletar
-    const { data: etapaAtual, error: errorFetch } = await supabase
-        .from('projeto_etapas')
-        .select('projeto_id')
-        .eq('id', id)
-        .single();
-
-    if (errorFetch) throw errorFetch;
+    // Buscar projeto_id antes de deletar para o sync
+    const { data: current } = await supabase.from('projeto_etapas').select('projeto_id').eq('id', id).single();
 
     const { error } = await supabase
         .from('projeto_etapas')
@@ -187,9 +171,10 @@ export const deleteEtapa = async (id: string): Promise<string> => {
         .eq('id', id);
 
     if (error) {
-        throw new Error(`Erro ao excluir etapa: ${error.message}`);
+        throw new Error(`Erro ao deletar etapa: ${error.message}`);
     }
 
-    // Sincroniza status do projeto
-    return await syncProjetoStatus(etapaAtual.projeto_id);
+    if (current?.projeto_id) {
+        return await syncProjetoStatus(current.projeto_id);
+    }
 };

@@ -7,6 +7,12 @@ import DashboardLayout from './components/DashboardLayout';
 import CollaboratorsPage from './pages/admin/CollaboratorsPage';
 import TimesheetPage from './pages/TimesheetPage';
 import ReportsPage from './pages/admin/ReportsPage';
+import ClientesPage from './pages/clientes/ClientesPage';
+import ClienteFormPage from './pages/clientes/ClienteFormPage';
+import ClienteDetailPage from './pages/clientes/ClienteDetailPage';
+import ProjetosPage from './pages/projetos/ProjetosPage';
+import ProjetoFormPage from './pages/projetos/ProjetoFormPage';
+import ProjetoDetailPage from './pages/projetos/ProjetoDetailPage';
 
 // --- Auth Context ---
 interface AuthContextType {
@@ -74,6 +80,29 @@ const App: React.FC = () => {
             <Route path="colaboradores" element={<CollaboratorsPage />} />
             <Route path="relatorios" element={<ReportsPage />} />
             <Route path="ponto-admin" element={<TimesheetPage adminView />} />
+          </Route>
+
+          {/* Admin Client/Project Routes */}
+          <Route path="/clientes" element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<ClientesPage />} />
+            <Route path="novo" element={<ClienteFormPage />} />
+            <Route path=":id" element={<ClienteDetailPage />} />
+            <Route path=":id/editar" element={<ClienteFormPage />} />
+          </Route>
+
+          <Route path="/projetos" element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<ProjetosPage />} />
+            <Route path="novo" element={<ProjetoFormPage />} />
+            <Route path=":id" element={<ProjetoDetailPage />} />
+            <Route path=":id/editar" element={<ProjetoFormPage />} />
           </Route>
 
           {/* Shared/Collaborator Routes */}

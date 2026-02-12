@@ -14,15 +14,14 @@ const DashboardLayout: React.FC = () => {
   };
 
   const navClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center space-x-3 p-3 rounded-lg transition-colors ${
-      isActive 
-        ? 'bg-primary/20 text-primary border-r-4 border-primary' 
-        : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+    `flex items-center space-x-3 p-3 rounded-lg transition-colors ${isActive
+      ? 'bg-primary/20 text-primary border-r-4 border-primary'
+      : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
     }`;
 
   return (
     <div className="min-h-screen bg-background text-slate-100 flex flex-col md:flex-row">
-      
+
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 bg-surface border-b border-slate-700">
         <span className="font-bold text-lg text-primary">ArqPonto</span>
@@ -43,12 +42,18 @@ const DashboardLayout: React.FC = () => {
         </div>
 
         <nav className="px-4 space-y-2 mt-4">
-          
+
           {user?.role === UserRole.ADMIN && (
             <>
               <div className="text-xs font-semibold text-slate-500 uppercase px-3 pt-4 pb-2">Administração</div>
               <NavLink to="/admin/colaboradores" className={navClass}>
                 <span>👥</span> <span>Colaboradores</span>
+              </NavLink>
+              <NavLink to="/clientes" className={navClass}>
+                <span>🏢</span> <span>Clientes</span>
+              </NavLink>
+              <NavLink to="/projetos" className={navClass}>
+                <span>🏗️</span> <span>Projetos</span>
               </NavLink>
               <NavLink to="/admin/relatorios" className={navClass}>
                 <span>📊</span> <span>Relatório de Pagamento</span>
@@ -76,7 +81,7 @@ const DashboardLayout: React.FC = () => {
               <p className="text-xs text-slate-500 truncate">{user?.role === UserRole.ADMIN ? 'Administrador' : 'Colaborador'}</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={handleLogout}
             className="w-full flex items-center justify-center space-x-2 py-2 px-4 rounded-md border border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors text-sm"
           >
@@ -87,7 +92,7 @@ const DashboardLayout: React.FC = () => {
 
       {/* Overlay for mobile */}
       {isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
           onClick={() => setSidebarOpen(false)}
         ></div>
