@@ -74,3 +74,52 @@ export interface ResumoPagamento {
   valorTotalCalculado?: number;
   valorInss?: number;
 }
+
+export interface Cliente {
+  id: string;
+  nome: string;
+  email?: string;
+  telefone: string;
+  cpfCnpj?: string;
+  dataNascimento?: string;
+  endereco?: string;
+  observacoes?: string;
+  ativo: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface Projeto {
+  id: string;
+  clienteId: string;
+  nomeProjeto: string;
+  empresa?: string;
+  enderecoObra?: string;
+  dataInicio?: string;
+  dataPrevistaTermino?: string;
+  status: string; // 'planejamento' | 'em_andamento' | 'concluido' | 'cancelado'
+  observacoes?: string;
+  createdAt: string;
+  updatedAt?: string;
+
+  // Campo opcional para join
+  cliente?: Partial<Cliente>;
+}
+
+export interface ProjetoEtapa {
+  id: string;
+  projetoId: string;
+  nomeEtapa: string;
+  ordem?: number;
+  dataInicioPrevista?: string;
+  dataFimPrevista?: string;
+  status: 'nao_iniciado' | 'em_andamento' | 'concluido' | 'cancelado';
+  colaboradorId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+
+  // Campo opcional para join
+  colaborador?: {
+    nome: string;
+  };
+}
