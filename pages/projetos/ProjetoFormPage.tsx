@@ -158,7 +158,7 @@ const ProjetoFormPage: React.FC = () => {
     if (loading) return <div className="p-6 text-slate-300">Carregando...</div>;
 
     return (
-        <div className="p-6 max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto space-y-6">
             <h1 className="text-2xl font-bold text-white mb-6">
                 {isEditing ? 'Editar Projeto' : 'Novo Projeto'}
             </h1>

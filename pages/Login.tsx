@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../services/authService';
 import { useAuth } from '../App';
@@ -27,7 +27,7 @@ const Login: React.FC = () => {
         navigate('/ponto');
       }
     } catch (err) {
-      setError('Usuário ou senha incorretos.');
+      setError('UsuÃ¡rio ou senha incorretos.');
     } finally {
       setIsLoading(false);
     }

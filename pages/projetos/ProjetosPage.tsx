@@ -36,7 +36,7 @@ const ProjetosPage: React.FC = () => {
     if (loading) return <div className="p-6 text-slate-300">Carregando...</div>;
 
     return (
-        <div className="p-6">
+        <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-white">Projetos</h1>

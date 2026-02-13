@@ -94,7 +94,7 @@ const ClienteFormPage: React.FC = () => {
     if (loading) return <div className="p-6 text-slate-300">Carregando...</div>;
 
     return (
-        <div className="p-6 max-w-2xl mx-auto">
+        <div className="max-w-2xl mx-auto space-y-6">
             <h1 className="text-2xl font-bold text-white mb-6">
                 {isEditing ? 'Editar Cliente' : 'Novo Cliente'}
             </h1>

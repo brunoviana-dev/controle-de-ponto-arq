@@ -1,52 +1,20 @@
-# Sistema de Controle de Ponto
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
 
-Sistema de controle de ponto desenvolvido para escritórios de arquitetura, com integração ao Supabase.
+# Run and deploy your AI Studio app
 
-## Funcionalidades
+This contains everything you need to run your app locally.
 
-- 👤 Autenticação de usuários (Admin e Colaboradores)
-- ⏰ Registro de horas trabalhadas (normais e extras)
-- 📊 Relatórios de pagamento
-- 👥 Gestão de colaboradores
-- 💾 Persistência de dados no Supabase
+View your app in AI Studio: https://ai.studio/apps/temp/1
 
-## Tecnologias
+## Run Locally
 
-- React 19
-- TypeScript
-- Vite
-- React Router DOM
-- Supabase
-- Tailwind CSS
+**Prerequisites:**  Node.js
 
-## Instalação
 
-1. Clone o repositório
-2. Instale as dependências:
-   ```bash
-   npm install
-   ```
-3. Configure as variáveis de ambiente no arquivo `.env.local`:
-   ```
-   VITE_SUPABASE_URL=sua_url_do_supabase
-   VITE_SUPABASE_ANON_KEY=sua_chave_anonima
-   ```
-4. Execute o projeto:
-   ```bash
-   npm run dev
-   ```
-
-## Credenciais Padrão
-
-- **Admin**: login: `admin` / senha: `admin`
-
-## Estrutura do Projeto
-
-- `/components` - Componentes React reutilizáveis
-- `/pages` - Páginas da aplicação
-- `/services` - Serviços de integração com o Supabase
-- `/utils` - Funções utilitárias
-
-## Licença
-
-MIT
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`
