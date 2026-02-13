@@ -85,10 +85,6 @@ const Login: React.FC = () => {
             ) : 'Entrar'}
           </button>
         </form>
-
-        <div className="mt-6 text-center text-xs text-slate-600">
-          <p>Login Admin: admin / admin</p>
-        </div>
       </div>
     </div>
   );
