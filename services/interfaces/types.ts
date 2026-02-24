@@ -97,13 +97,40 @@ export interface Projeto {
   enderecoObra?: string;
   dataInicio?: string;
   dataPrevistaTermino?: string;
-  status: string; // 'planejamento' | 'em_andamento' | 'concluido' | 'cancelado'
+  status: string; // 'nao_iniciado' | 'em_andamento' | 'concluido' | 'cancelado'
+  valor?: number;
+  formaPagamento?: string;
+  numeroPrestacoes?: number;
   observacoes?: string;
   createdAt: string;
   updatedAt?: string;
 
   // Campo opcional para join
   cliente?: Partial<Cliente>;
+}
+
+export interface ProjetoParcela {
+  id: string;
+  projetoId: string;
+  numeroParcela: number;
+  valorParcela: number;
+  dataVencimento?: string;
+  dataRecebimento?: string;
+  status: 'pendente' | 'recebido' | 'atrasado';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RelatorioRecebimento {
+  projetoId: string;
+  nomeProjeto: string;
+  clienteNome: string;
+  valorTotal: number;
+  numeroParcelas: number;
+  parcelasRecebidas: number;
+  valorRecebido: number;
+  valorEmAberto: number;
+  todasPagas: boolean;
 }
 
 export interface ProjetoEtapa {

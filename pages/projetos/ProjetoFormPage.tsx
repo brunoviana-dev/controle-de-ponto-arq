@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { createProjeto, getProjetoById, updateProjeto } from '../../services/projetosService';
+import { createProjeto, deleteProjeto, getProjetoById, updateProjeto } from '../../services/projetosService';
 import { getClientes } from '../../services/clientesService';
 import { createEtapa } from '../../services/projetoEtapasService';
 import { getColaboradores } from '../../services/colaboradorService';
 import { Cliente, Colaborador, ProjetoEtapa } from '../../services/interfaces/types';
+import { formatCurrency } from '../../utils/formatters';
+import ConfirmModal from '../../components/ConfirmModal';
 
 interface EtapaInput {
     idTemp?: string;
@@ -23,6 +25,7 @@ const ProjetoFormPage: React.FC = () => {
 
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [error, setError] = useState('');
     const [clientes, setClientes] = useState<Cliente[]>([]);
     const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
@@ -37,7 +40,10 @@ const ProjetoFormPage: React.FC = () => {
         enderecoObra: '',
         dataInicio: '',
         dataPrevistaTermino: '',
-        status: 'planejamento',
+        status: 'nao_iniciado',
+        valor: '' as number | '',
+        formaPagamento: '',
+        numeroPrestacoes: '' as number | '',
         observacoes: ''
     });
 
@@ -66,10 +72,19 @@ const ProjetoFormPage: React.FC = () => {
                         dataInicio: projeto.dataInicio || '',
                         dataPrevistaTermino: projeto.dataPrevistaTermino || '',
                         status: projeto.status,
+                        valor: projeto.valor || '',
+                        formaPagamento: projeto.formaPagamento || '',
+                        numeroPrestacoes: projeto.numeroPrestacoes || '',
                         observacoes: projeto.observacoes || ''
                     });
                 } else {
                     setError('Projeto não encontrado');
+                }
+            } else if (preSelectedClienteId) {
+                // Caso venha da tela de cliente, preenche o endereço se disponível
+                const selectedCliente = clientesData.find(c => c.id === preSelectedClienteId);
+                if (selectedCliente && selectedCliente.endereco) {
+                    setFormData(prev => ({ ...prev, enderecoObra: selectedCliente.endereco }));
                 }
             }
         } catch (err: any) {
@@ -97,6 +112,23 @@ const ProjetoFormPage: React.FC = () => {
         setEtapas(etapas.map(e => e.idTemp === idTemp ? { ...e, [field]: value } : e));
     };
 
+    const handleDelete = () => {
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!id) return;
+        try {
+            setSaving(true);
+            await deleteProjeto(id);
+            navigate('/projetos');
+        } catch (err: any) {
+            alert(`Erro ao excluir projeto: ${err.message}`);
+        } finally {
+            setSaving(false);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
@@ -108,13 +140,17 @@ const ProjetoFormPage: React.FC = () => {
 
         try {
             setSaving(true);
-            const dataToSave = { ...formData };
+            const dataToSave = {
+                ...formData,
+                valor: formData.valor === '' ? 0 : Number(formData.valor),
+                numeroPrestacoes: formData.numeroPrestacoes === '' ? 0 : Number(formData.numeroPrestacoes)
+            };
             let projetoId = id;
 
             if (isEditing && id) {
                 await updateProjeto(id, dataToSave);
             } else {
-                const newProjeto = await createProjeto(dataToSave);
+                const newProjeto = await createProjeto(dataToSave as any);
                 projetoId = newProjeto.id;
             }
 
@@ -150,9 +186,34 @@ const ProjetoFormPage: React.FC = () => {
         }
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
+
+        // Autopreencher endereço da obra ao selecionar cliente (apenas em novo projeto)
+        if (name === 'clienteId' && !isEditing && value) {
+            const selectedCliente = clientes.find(c => c.id === value);
+            if (selectedCliente && selectedCliente.endereco) {
+                setFormData(prev => ({
+                    ...prev,
+                    [name]: value,
+                    enderecoObra: selectedCliente.endereco
+                }));
+                return;
+            }
+        }
+
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleValorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { value } = e.target;
+        // Remove tudo que não é dígito
+        const cleanValue = value.replace(/\D/g, '');
+        // Converte para centavos
+        const cents = parseInt(cleanValue || '0');
+        const numericValue = cents / 100;
+
+        setFormData(prev => ({ ...prev, valor: numericValue }));
     };
 
     if (loading) return <div className="p-6 text-slate-300">Carregando...</div>;
@@ -224,10 +285,57 @@ const ProjetoFormPage: React.FC = () => {
                                 onChange={handleChange}
                                 className="w-full bg-slate-800 border border-slate-600 rounded-md px-3 py-2 text-white focus:border-primary focus:outline-none"
                             >
-                                <option value="planejamento">Planejamento</option>
+                                <option value="nao_iniciado">Não Iniciado</option>
                                 <option value="em_andamento">Em Andamento</option>
                                 <option value="concluido">Concluído</option>
                                 <option value="cancelado">Cancelado</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-400 mb-1">Valor do Projeto</label>
+                            <input
+                                type="text"
+                                name="valor"
+                                value={formData.valor ? formatCurrency(formData.valor) : ''}
+                                onChange={handleValorChange}
+                                className="w-full bg-slate-800 border border-slate-600 rounded-md px-3 py-2 text-white focus:border-primary focus:outline-none"
+                                placeholder="R$ 0,00"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-400 mb-1">Forma de Pagamento</label>
+                            <select
+                                name="formaPagamento"
+                                value={formData.formaPagamento}
+                                onChange={handleChange}
+                                className="w-full bg-slate-800 border border-slate-600 rounded-md px-3 py-2 text-white focus:border-primary focus:outline-none"
+                            >
+                                <option value="">Selecione...</option>
+                                <option value="Dinheiro">Dinheiro</option>
+                                <option value="PIX">PIX</option>
+                                <option value="Cartão">Cartão</option>
+                                <option value="Boleto">Boleto</option>
+                                <option value="TED">TED</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-400 mb-1">Nº de Prestações</label>
+                            <select
+                                name="numeroPrestacoes"
+                                value={formData.numeroPrestacoes}
+                                onChange={handleChange}
+                                className="w-full bg-slate-800 border border-slate-600 rounded-md px-3 py-2 text-white focus:border-primary focus:outline-none"
+                            >
+                                <option value="">Selecione...</option>
+                                <option value="0">À Vista</option>
+                                {[...Array(12)].map((_, i) => (
+                                    <option key={i + 1} value={i + 1}>
+                                        {i + 1} {i + 1 === 1 ? 'Vez' : 'Vezes'}
+                                    </option>
+                                ))}
                             </select>
                         </div>
                     </div>
@@ -355,24 +463,49 @@ const ProjetoFormPage: React.FC = () => {
                     </div>
                 )}
 
-                <div className="flex justify-end space-x-3 pt-4">
-                    <button
-                        type="button"
-                        onClick={() => navigate(-1)}
-                        className="px-4 py-2 text-slate-300 hover:text-white transition-colors"
-                        disabled={saving}
-                    >
-                        Cancelar
-                    </button>
-                    <button
-                        type="submit"
-                        className="bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-md transition duration-200 disabled:opacity-50"
-                        disabled={saving}
-                    >
-                        {saving ? 'Salvando...' : 'Salvar Projeto'}
-                    </button>
+                <div className="flex justify-between items-center pt-4">
+                    <div>
+                        {isEditing && (
+                            <button
+                                type="button"
+                                onClick={handleDelete}
+                                className="px-4 py-2 text-sm rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50 font-medium"
+                                disabled={saving}
+                            >
+                                Deletar
+                            </button>
+                        )}
+                    </div>
+                    <div className="flex space-x-3">
+                        <button
+                            type="button"
+                            onClick={() => navigate(-1)}
+                            className="px-4 py-2 text-slate-300 hover:text-white transition-colors"
+                            disabled={saving}
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            className="bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-md transition duration-200 disabled:opacity-50"
+                            disabled={saving}
+                        >
+                            {saving ? 'Salvando...' : 'Salvar Projeto'}
+                        </button>
+                    </div>
                 </div>
             </form>
+
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleConfirmDelete}
+                title="Excluir Projeto"
+                message={`Tem certeza que deseja excluir o projeto "${formData.nomeProjeto}"? Esta ação também excluirá todas as parcelas e etapas associadas e NÃO pode ser desfeita.`}
+                confirmText="Excluir"
+                cancelText="Cancelar"
+                isDanger={true}
+            />
         </div>
     );
 };

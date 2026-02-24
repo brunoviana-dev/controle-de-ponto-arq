@@ -7,6 +7,7 @@ import DashboardLayout from './components/DashboardLayout';
 import CollaboratorsPage from './pages/admin/CollaboratorsPage';
 import TimesheetPage from './pages/TimesheetPage';
 import ReportsPage from './pages/admin/ReportsPage';
+import RelatorioRecebimentoPage from './pages/admin/RelatorioRecebimentoPage';
 import ClientesPage from './pages/clientes/ClientesPage';
 import ClienteFormPage from './pages/clientes/ClienteFormPage';
 import ClienteDetailPage from './pages/clientes/ClienteDetailPage';
@@ -79,6 +80,7 @@ const App: React.FC = () => {
           }>
             <Route path="colaboradores" element={<CollaboratorsPage />} />
             <Route path="relatorios" element={<ReportsPage />} />
+            <Route path="recebimentos" element={<RelatorioRecebimentoPage />} />
             <Route path="ponto-admin" element={<TimesheetPage adminView />} />
           </Route>
 

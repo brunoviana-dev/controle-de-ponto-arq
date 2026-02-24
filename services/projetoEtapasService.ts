@@ -55,7 +55,7 @@ const syncProjetoStatus = async (projetoId: string): Promise<string> => {
 
     if (errorEtapas) throw errorEtapas;
 
-    if (!etapas || etapas.length === 0) return 'planejamento';
+    if (!etapas || etapas.length === 0) return 'nao_iniciado';
 
     const total = etapas.length;
     const countNaoIniciado = etapas.filter(e => e.status === 'nao_iniciado').length;
@@ -66,7 +66,7 @@ const syncProjetoStatus = async (projetoId: string): Promise<string> => {
     let novoStatus = 'em_andamento';
 
     if (countNaoIniciado === total) {
-        novoStatus = 'planejamento';
+        novoStatus = 'nao_iniciado';
     } else if (countCancelado === total) {
         novoStatus = 'cancelado';
     } else if (countConcluido + countCancelado === total) {

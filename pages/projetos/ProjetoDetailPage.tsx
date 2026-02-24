@@ -4,7 +4,7 @@ import { getProjetoById } from '../../services/projetosService';
 import { createEtapa, deleteEtapa, getEtapasByProjeto, updateEtapa } from '../../services/projetoEtapasService';
 import { getColaboradores } from '../../services/colaboradorService';
 import { Colaborador, Projeto, ProjetoEtapa } from '../../services/interfaces/types';
-import { formatStatus, getStatusBadgeClass } from '../../utils/formatters';
+import { formatCurrency, formatStatus, getStatusBadgeClass } from '../../utils/formatters';
 
 const ProjetoDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -182,7 +182,7 @@ const ProjetoDetailPage: React.FC = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 {/* Info Card */}
                 <div className="lg:col-span-1 space-y-6">
                     <div className="bg-surface p-6 rounded-lg border border-slate-700">
@@ -232,10 +232,33 @@ const ProjetoDetailPage: React.FC = () => {
                             </div>
                         </div>
                     </div>
+
+                    <div className="bg-surface p-6 rounded-lg border border-slate-700">
+                        <h2 className="text-lg font-semibold text-white mb-4 border-b border-slate-700 pb-2">Informações de Pagamento</h2>
+                        <div className="space-y-4 text-sm">
+                            <div>
+                                <span className="block text-slate-500 mb-1">Valor</span>
+                                <span className="text-white font-medium">{formatCurrency(projeto.valor)}</span>
+                            </div>
+                            <div>
+                                <span className="block text-slate-500 mb-1">Forma de Pagamento</span>
+                                <span className="text-white font-medium">{projeto.formaPagamento || 'Não informado'}</span>
+                            </div>
+                            <div>
+                                <span className="block text-slate-500 mb-1">Nº de Prestações</span>
+                                <span className="text-white font-medium">
+                                    {projeto.numeroPrestacoes === 0 ? 'À vista' :
+                                        !projeto.numeroPrestacoes ? 'Não informado' :
+                                            projeto.numeroPrestacoes === 1 ? '1 vez' :
+                                                `${projeto.numeroPrestacoes} vezes`}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Stages Card */}
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-3">
                     <div className="bg-surface rounded-lg border border-slate-700 overflow-hidden">
                         <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-800/30">
                             <h2 className="text-lg font-semibold text-white">Etapas</h2>
@@ -340,7 +363,7 @@ const ProjetoDetailPage: React.FC = () => {
                                                         <span className="font-medium text-white">{etapa.nomeEtapa}</span>
                                                     )}
                                                 </td>
-                                                <td className="px-6 py-4 text-xs">
+                                                <td className="px-6 py-4 text-xs whitespace-nowrap">
                                                     {editingEtapaId === etapa.id ? (
                                                         <div className="space-y-1">
                                                             <input
@@ -381,7 +404,7 @@ const ProjetoDetailPage: React.FC = () => {
                                                         </span>
                                                     )}
                                                 </td>
-                                                <td className="px-6 py-4 text-center">
+                                                <td className="px-6 py-4 text-center whitespace-nowrap">
                                                     {editingEtapaId === etapa.id ? (
                                                         <select
                                                             value={etapa.status}

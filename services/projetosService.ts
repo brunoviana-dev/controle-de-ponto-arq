@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import { Projeto, UserRole } from './interfaces/types';
 import { getCurrentUser } from './authService';
+import { gerarParcelasAutomaticas } from './projetoParcelasService';
 
 const ensureAdmin = () => {
     const user = getCurrentUser();
@@ -36,6 +37,9 @@ export const getProjetos = async (): Promise<Projeto[]> => {
         dataInicio: p.data_inicio,
         dataPrevistaTermino: p.data_prevista_termino,
         status: p.status,
+        valor: p.valor,
+        formaPagamento: p.forma_pagamento,
+        numeroPrestacoes: p.numero_prestacoes,
         observacoes: p.observacoes,
         createdAt: p.created_at,
         updatedAt: p.updated_at,
@@ -71,6 +75,9 @@ export const getProjetosByCliente = async (clienteId: string): Promise<Projeto[]
         dataInicio: p.data_inicio,
         dataPrevistaTermino: p.data_prevista_termino,
         status: p.status,
+        valor: p.valor,
+        formaPagamento: p.forma_pagamento,
+        numeroPrestacoes: p.numero_prestacoes,
         observacoes: p.observacoes,
         createdAt: p.created_at,
         updatedAt: p.updated_at
@@ -105,6 +112,9 @@ export const getProjetoById = async (id: string): Promise<Projeto | undefined> =
         dataInicio: data.data_inicio,
         dataPrevistaTermino: data.data_prevista_termino,
         status: data.status,
+        valor: data.valor,
+        formaPagamento: data.forma_pagamento,
+        numeroPrestacoes: data.numero_prestacoes,
         observacoes: data.observacoes,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
@@ -134,7 +144,10 @@ export const createProjeto = async (projeto: Omit<Projeto, 'id' | 'createdAt' | 
             endereco_obra: projeto.enderecoObra,
             data_inicio: projeto.dataInicio,
             data_prevista_termino: projeto.dataPrevistaTermino,
-            status: projeto.status || 'planejamento',
+            status: projeto.status || 'nao_iniciado',
+            valor: projeto.valor,
+            forma_pagamento: projeto.formaPagamento,
+            numero_prestacoes: projeto.numeroPrestacoes,
             observacoes: projeto.observacoes
         })
         .select()
@@ -142,6 +155,11 @@ export const createProjeto = async (projeto: Omit<Projeto, 'id' | 'createdAt' | 
 
     if (error) {
         throw new Error(`Erro ao criar projeto: ${error.message}`);
+    }
+
+    // Gerar parcelas se houver valor e prestações
+    if (data.valor > 0 && data.numero_prestacoes > 0) {
+        await gerarParcelasAutomaticas(data.id, data.valor, data.numero_prestacoes);
     }
 
     return {
@@ -153,6 +171,9 @@ export const createProjeto = async (projeto: Omit<Projeto, 'id' | 'createdAt' | 
         dataInicio: data.data_inicio,
         dataPrevistaTermino: data.data_prevista_termino,
         status: data.status,
+        valor: data.valor,
+        formaPagamento: data.forma_pagamento,
+        numeroPrestacoes: data.numero_prestacoes,
         observacoes: data.observacoes,
         createdAt: data.created_at,
         updatedAt: data.updated_at
@@ -173,6 +194,9 @@ export const updateProjeto = async (id: string, projeto: Partial<Omit<Projeto, '
     if (projeto.dataInicio !== undefined) updateData.data_inicio = projeto.dataInicio;
     if (projeto.dataPrevistaTermino !== undefined) updateData.data_prevista_termino = projeto.dataPrevistaTermino;
     if (projeto.status !== undefined) updateData.status = projeto.status;
+    if (projeto.valor !== undefined) updateData.valor = projeto.valor;
+    if (projeto.formaPagamento !== undefined) updateData.forma_pagamento = projeto.formaPagamento;
+    if (projeto.numeroPrestacoes !== undefined) updateData.numero_prestacoes = projeto.numeroPrestacoes;
     if (projeto.observacoes !== undefined) updateData.observacoes = projeto.observacoes;
 
     const { error } = await supabase
@@ -183,6 +207,15 @@ export const updateProjeto = async (id: string, projeto: Partial<Omit<Projeto, '
     if (error) {
         throw new Error(`Erro ao atualizar projeto: ${error.message}`);
     }
+
+    // Se valor ou número de prestações mudou, a função gerarParcelasAutomaticas 
+    // lida com a verificação de existência interna (ou podemos forçar aqui se necessário)
+    if (projeto.valor !== undefined || projeto.numeroPrestacoes !== undefined) {
+        const { data: updatedProj } = await supabase.from('projetos').select('valor, numero_prestacoes').eq('id', id).single();
+        if (updatedProj) {
+            await gerarParcelasAutomaticas(id, updatedProj.valor || 0, updatedProj.numero_prestacoes || 0);
+        }
+    }
 };
 
 /**
@@ -191,12 +224,33 @@ export const updateProjeto = async (id: string, projeto: Partial<Omit<Projeto, '
 export const deleteProjeto = async (id: string): Promise<void> => {
     ensureAdmin();
 
-    const { error } = await supabase
+    // 1. Excluir parcelas do projeto
+    const { error: errorParcelas } = await supabase
+        .from('projeto_parcelas')
+        .delete()
+        .eq('projeto_id', id);
+
+    if (errorParcelas) {
+        throw new Error(`Erro ao excluir parcelas do projeto: ${errorParcelas.message}`);
+    }
+
+    // 2. Excluir etapas do projeto
+    const { error: errorEtapas } = await supabase
+        .from('projeto_etapas')
+        .delete()
+        .eq('projeto_id', id);
+
+    if (errorEtapas) {
+        throw new Error(`Erro ao excluir etapas do projeto: ${errorEtapas.message}`);
+    }
+
+    // 3. Excluir o projeto
+    const { error: errorProjeto } = await supabase
         .from('projetos')
         .delete()
         .eq('id', id);
 
-    if (error) {
-        throw new Error(`Erro ao deletar projeto: ${error.message}`);
+    if (errorProjeto) {
+        throw new Error(`Erro ao excluir o projeto: ${errorProjeto.message}`);
     }
 };

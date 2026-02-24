@@ -1,14 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Projeto } from '../../services/interfaces/types';
-import { getProjetos } from '../../services/projetosService';
-import { formatStatus, getStatusBadgeClass } from '../../utils/formatters';
+import { deleteProjeto, getProjetos } from '../../services/projetosService';
+import ConfirmModal from '../../components/ConfirmModal';
+import { formatCurrency, formatStatus, getStatusBadgeClass } from '../../utils/formatters';
 
 const ProjetosPage: React.FC = () => {
     const [projetos, setProjetos] = useState<Projeto[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [search, setSearch] = useState('');
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    // Estados para o Modal de Confirmação
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [projetoParaExcluir, setProjetoParaExcluir] = useState<{ id: string, nome: string } | null>(null);
 
     useEffect(() => {
         loadProjetos();
@@ -24,6 +30,29 @@ const ProjetosPage: React.FC = () => {
             setError(err.message || 'Erro ao carregar projetos');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDelete = (id: string, nome: string) => {
+        setProjetoParaExcluir({ id, nome });
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!projetoParaExcluir) return;
+
+        const { id, nome } = projetoParaExcluir;
+
+        try {
+            setDeletingId(id);
+            await deleteProjeto(id);
+            // Atualizar lista localmente
+            setProjetos(prev => prev.filter(p => p.id !== id));
+        } catch (err: any) {
+            alert(`Erro ao excluir projeto "${nome}": ${err.message}`);
+        } finally {
+            setDeletingId(null);
+            setProjetoParaExcluir(null);
         }
     };
 
@@ -73,7 +102,10 @@ const ProjetosPage: React.FC = () => {
                             <tr>
                                 <th className="px-6 py-3">Projeto</th>
                                 <th className="px-6 py-3">Cliente</th>
-                                <th className="px-6 py-3">Status</th>
+                                <th className="px-6 py-3">Valor</th>
+                                <th className="px-6 py-3">Pagamento</th>
+                                <th className="px-6 py-3">Prestações</th>
+                                <th className="px-6 py-3 text-center">Status</th>
                                 <th className="px-6 py-3 text-right">Ações</th>
                             </tr>
                         </thead>
@@ -101,6 +133,17 @@ const ProjetosPage: React.FC = () => {
                                             )}
                                         </td>
                                         <td className="px-6 py-4">
+                                            <span className="text-white font-medium">{formatCurrency(projeto.valor)}</span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="text-slate-300">{projeto.formaPagamento || '-'}</span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="text-slate-300">
+                                                {projeto.numeroPrestacoes === 0 ? 'À Vista' : `${projeto.numeroPrestacoes}x`}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
                                             <span className={`px-2 py-1 rounded text-xs inline-block font-medium ${getStatusBadgeClass(projeto.status)}`}>
                                                 {formatStatus(projeto.status)}
                                             </span>
@@ -118,6 +161,13 @@ const ProjetosPage: React.FC = () => {
                                             >
                                                 Editar
                                             </Link>
+                                            <button
+                                                onClick={() => handleDelete(projeto.id, projeto.nomeProjeto)}
+                                                disabled={deletingId === projeto.id}
+                                                className="inline-block text-xs px-2 py-1 rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                                            >
+                                                {deletingId === projeto.id ? 'Excluindo...' : 'Deletar'}
+                                            </button>
                                         </td>
                                     </tr>
                                 ))
@@ -126,6 +176,17 @@ const ProjetosPage: React.FC = () => {
                     </table>
                 </div>
             </div>
+
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleConfirmDelete}
+                title="Excluir Projeto"
+                message={`Tem certeza que deseja excluir o projeto "${projetoParaExcluir?.nome}"? Esta ação também excluirá todas as parcelas e etapas associadas e NÃO pode ser desfeita.`}
+                confirmText="Excluir"
+                cancelText="Cancelar"
+                isDanger={true}
+            />
         </div>
     );
 };

@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getClienteById } from '../../services/clientesService';
-import { getProjetosByCliente } from '../../services/projetosService';
+import { deleteProjeto, getProjetosByCliente } from '../../services/projetosService';
+import ConfirmModal from '../../components/ConfirmModal';
 import { Cliente, Projeto } from '../../services/interfaces/types';
+import { formatCurrency } from '../../utils/formatters';
 
 const ClienteDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -10,6 +12,11 @@ const ClienteDetailPage: React.FC = () => {
     const [projetos, setProjetos] = useState<Projeto[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    // Estados para o Modal de Confirmação
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [projetoParaExcluir, setProjetoParaExcluir] = useState<{ id: string, nome: string } | null>(null);
 
     useEffect(() => {
         if (id) {
@@ -35,6 +42,30 @@ const ClienteDetailPage: React.FC = () => {
             setError(err.message || 'Erro ao carregar dados');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDeleteProjeto = (id: string, nome: string) => {
+        setProjetoParaExcluir({ id, nome });
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleConfirmDeleteProjeto = async () => {
+        if (!projetoParaExcluir) return;
+
+        const { id, nome } = projetoParaExcluir;
+
+        try {
+            setDeletingId(id);
+            await deleteProjeto(id);
+            // Atualizar lista localmente
+            setProjetos(prev => prev.filter(p => p.id !== id));
+            setIsDeleteModalOpen(false); // Fechar modal após sucesso
+        } catch (err: any) {
+            alert(`Erro ao excluir projeto "${nome}": ${err.message}`);
+        } finally {
+            setDeletingId(null);
+            setProjetoParaExcluir(null);
         }
     };
 
@@ -116,6 +147,9 @@ const ClienteDetailPage: React.FC = () => {
                         <thead className="bg-slate-800 text-slate-400 uppercase font-medium">
                             <tr>
                                 <th className="px-6 py-3">Nome do Projeto</th>
+                                <th className="px-6 py-3">Valor</th>
+                                <th className="px-6 py-3">Pagamento</th>
+                                <th className="px-6 py-3">Prestações</th>
                                 <th className="px-6 py-3">Status</th>
                                 <th className="px-6 py-3">Datas</th>
                                 <th className="px-6 py-3 text-right">Ações</th>
@@ -136,6 +170,17 @@ const ClienteDetailPage: React.FC = () => {
                                             {projeto.enderecoObra && <div className="text-xs text-slate-500">{projeto.enderecoObra}</div>}
                                         </td>
                                         <td className="px-6 py-4">
+                                            <span className="text-white font-medium">{formatCurrency(projeto.valor)}</span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="text-slate-300">{projeto.formaPagamento || '-'}</span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="text-slate-300">
+                                                {projeto.numeroPrestacoes === 0 ? 'À Vista' : `${projeto.numeroPrestacoes}x`}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
                                             <span className="px-2 py-1 rounded bg-slate-700 text-xs">
                                                 {projeto.status}
                                             </span>
@@ -153,10 +198,17 @@ const ClienteDetailPage: React.FC = () => {
                                             </Link>
                                             <Link
                                                 to={`/projetos/${projeto.id}/editar`}
-                                                className="inline-block text-xs px-2 py-1 rounded border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors"
+                                                className="inline-block text-xs px-2 py-1 rounded border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors mr-2"
                                             >
                                                 Editar
                                             </Link>
+                                            <button
+                                                onClick={() => handleDeleteProjeto(projeto.id, projeto.nomeProjeto)}
+                                                disabled={deletingId === projeto.id}
+                                                className="inline-block text-xs px-2 py-1 rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                                            >
+                                                {deletingId === projeto.id ? 'Excluindo...' : 'Deletar'}
+                                            </button>
                                         </td>
                                     </tr>
                                 ))
@@ -165,6 +217,17 @@ const ClienteDetailPage: React.FC = () => {
                     </table>
                 </div>
             </div>
+
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleConfirmDeleteProjeto}
+                title="Excluir Projeto"
+                message={`Tem certeza que deseja excluir o projeto "${projetoParaExcluir?.nome}"? Esta ação também excluirá todas as parcelas e etapas associadas e NÃO pode ser desfeita.`}
+                confirmText="Excluir"
+                cancelText="Cancelar"
+                isDanger={true}
+            />
         </div>
     );
 };
