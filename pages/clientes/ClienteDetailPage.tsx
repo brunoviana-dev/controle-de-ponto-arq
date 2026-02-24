@@ -4,7 +4,7 @@ import { getClienteById } from '../../services/clientesService';
 import { deleteProjeto, getProjetosByCliente } from '../../services/projetosService';
 import ConfirmModal from '../../components/ConfirmModal';
 import { Cliente, Projeto } from '../../services/interfaces/types';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, formatStatus, getStatusBadgeClass } from '../../utils/formatters';
 
 const ClienteDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -181,8 +181,8 @@ const ClienteDetailPage: React.FC = () => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="px-2 py-1 rounded bg-slate-700 text-xs">
-                                                {projeto.status}
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getStatusBadgeClass(projeto.status)}`}>
+                                                {formatStatus(projeto.status)}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-xs">
