@@ -132,7 +132,9 @@ const RelatorioRecebimentoPage: React.FC = () => {
                             </div>
                             <div className="bg-background/50 p-3 rounded-lg border border-slate-800">
                                 <p className="text-xs text-slate-500 uppercase font-bold mb-1">Parcelas</p>
-                                <p className="text-white font-bold">{rel.parcelasRecebidas} / {rel.numeroParcelas}</p>
+                                <p className="text-white font-bold">
+                                    {rel.numeroParcelas === 0 ? 'A VISTA' : `${rel.parcelasRecebidas} / ${rel.numeroParcelas}`}
+                                </p>
                             </div>
                             <div className="bg-background/50 p-3 rounded-lg border border-slate-800">
                                 <p className="text-xs text-slate-500 uppercase font-bold mb-1">Recebido</p>
@@ -149,13 +151,19 @@ const RelatorioRecebimentoPage: React.FC = () => {
                             <div className="flex justify-between text-xs mb-1">
                                 <span className="text-slate-400">Progresso do Recebimento</span>
                                 <span className="text-white font-bold">
-                                    {rel.numeroParcelas > 0 ? Math.round((rel.parcelasRecebidas / rel.numeroParcelas) * 100) : 0}%
+                                    {rel.numeroParcelas === 0
+                                        ? (rel.parcelasRecebidas > 0 ? '100%' : '0%')
+                                        : Math.round((rel.parcelasRecebidas / rel.numeroParcelas) * 100)}%
                                 </span>
                             </div>
                             <div className="w-full bg-slate-800 rounded-full h-2">
                                 <div
                                     className="bg-primary h-2 rounded-full transition-all duration-500"
-                                    style={{ width: `${rel.numeroParcelas > 0 ? (rel.parcelasRecebidas / rel.numeroParcelas) * 100 : 0}%` }}
+                                    style={{
+                                        width: `${rel.numeroParcelas === 0
+                                            ? (rel.parcelasRecebidas > 0 ? 100 : 0)
+                                            : ((rel.parcelasRecebidas / rel.numeroParcelas) * 100)}%`
+                                    }}
                                 ></div>
                             </div>
                         </div>
@@ -228,7 +236,9 @@ const RelatorioRecebimentoPage: React.FC = () => {
                                                     )}
                                                 </div>
                                                 <div>
-                                                    <p className="font-bold text-white text-base">Parcela {par.numeroParcela}</p>
+                                                    <p className="font-bold text-white text-base">
+                                                        {selectedRel?.numeroParcelas === 0 ? 'Parcela à Vista' : `Parcela ${par.numeroParcela}`}
+                                                    </p>
                                                     <p className="text-xs text-slate-400">
                                                         {par.status === 'recebido'
                                                             ? `Recebida em ${par.dataRecebimento ? new Date(par.dataRecebimento).toLocaleDateString('pt-BR') : 'data não informada'}`

@@ -12,10 +12,13 @@ const ensureAdmin = () => {
 /**
  * Gera parcelas automaticamente para um projeto
  */
-export const gerarParcelasAutomaticas = async (projetoId: string, valorTotal: number, numParcelas: number): Promise<void> => {
+export const gerarParcelasAutomaticas = async (projetoId: string, valorTotal: number, numParcelasInput: number): Promise<void> => {
     ensureAdmin();
 
-    if (numParcelas < 0) return;
+    // Se for à vista (0), tratamos internamente como 1 parcela para fins de registro de recebimento
+    const numParcelas = numParcelasInput === 0 ? 1 : numParcelasInput;
+
+    if (numParcelas < 1) return;
 
     // Buscar parcelas existentes
     const { data: existing, error: fetchError } = await supabase
