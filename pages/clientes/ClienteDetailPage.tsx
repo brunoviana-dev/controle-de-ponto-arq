@@ -147,6 +147,7 @@ const ClienteDetailPage: React.FC = () => {
                         <thead className="bg-slate-800 text-slate-400 uppercase font-medium">
                             <tr>
                                 <th className="px-6 py-3">Nome do Projeto</th>
+                                <th className="px-6 py-3">Tipo</th>
                                 <th className="px-6 py-3">Valor</th>
                                 <th className="px-6 py-3">Pagamento</th>
                                 <th className="px-6 py-3">Prestações</th>
@@ -158,7 +159,7 @@ const ClienteDetailPage: React.FC = () => {
                         <tbody className="divide-y divide-slate-700">
                             {projetos.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-8 text-center text-slate-500">
+                                    <td colSpan={8} className="px-6 py-8 text-center text-slate-500">
                                         Nenhum projeto cadastrado para este cliente.
                                     </td>
                                 </tr>
@@ -168,6 +169,9 @@ const ClienteDetailPage: React.FC = () => {
                                         <td className="px-6 py-4 font-medium text-white">
                                             <div>{projeto.nomeProjeto}</div>
                                             {projeto.enderecoObra && <div className="text-xs text-slate-500">{projeto.enderecoObra}</div>}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="text-slate-200">{projeto.projetoTipo?.nome || '-'}</span>
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className="text-white font-medium">{formatCurrency(projeto.valor)}</span>

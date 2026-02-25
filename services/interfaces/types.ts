@@ -75,6 +75,12 @@ export interface ResumoPagamento {
   valorInss?: number;
 }
 
+export interface ProjetoTipo {
+  id: string;
+  nome: string;
+  ativo: boolean;
+}
+
 export interface Cliente {
   id: string;
   nome: string;
@@ -102,11 +108,13 @@ export interface Projeto {
   formaPagamento?: string;
   numeroPrestacoes?: number;
   observacoes?: string;
+  projetoTipoId?: string;
   createdAt: string;
   updatedAt?: string;
 
-  // Campo opcional para join
+  // Campos opcionais para join
   cliente?: Partial<Cliente>;
+  projetoTipo?: Partial<ProjetoTipo>;
 }
 
 export interface ProjetoParcela {

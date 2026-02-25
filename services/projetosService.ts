@@ -20,7 +20,8 @@ export const getProjetos = async (): Promise<Projeto[]> => {
         .from('projetos')
         .select(`
             *,
-            cliente:clientes(id, nome)
+            cliente:clientes(id, nome),
+            projeto_tipo:projeto_tipos(id, nome)
         `)
         .order('created_at', { ascending: false });
 
@@ -43,9 +44,14 @@ export const getProjetos = async (): Promise<Projeto[]> => {
         observacoes: p.observacoes,
         createdAt: p.created_at,
         updatedAt: p.updated_at,
+        projetoTipoId: p.projeto_tipo_id,
         cliente: p.cliente ? {
             id: p.cliente.id,
             nome: p.cliente.nome
+        } : undefined,
+        projetoTipo: p.projeto_tipo ? {
+            id: p.projeto_tipo.id,
+            nome: p.projeto_tipo.nome
         } : undefined
     }));
 };
@@ -58,7 +64,10 @@ export const getProjetosByCliente = async (clienteId: string): Promise<Projeto[]
 
     const { data, error } = await supabase
         .from('projetos')
-        .select('*')
+        .select(`
+            *,
+            projeto_tipo:projeto_tipos(id, nome)
+        `)
         .eq('cliente_id', clienteId)
         .order('created_at', { ascending: false });
 
@@ -80,7 +89,12 @@ export const getProjetosByCliente = async (clienteId: string): Promise<Projeto[]
         numeroPrestacoes: p.numero_prestacoes,
         observacoes: p.observacoes,
         createdAt: p.created_at,
-        updatedAt: p.updated_at
+        updatedAt: p.updated_at,
+        projetoTipoId: p.projeto_tipo_id,
+        projetoTipo: p.projeto_tipo ? {
+            id: p.projeto_tipo.id,
+            nome: p.projeto_tipo.nome
+        } : undefined
     }));
 };
 
@@ -94,7 +108,8 @@ export const getProjetoById = async (id: string): Promise<Projeto | undefined> =
         .from('projetos')
         .select(`
             *,
-            cliente:clientes(*)
+            cliente:clientes(*),
+            projeto_tipo:projeto_tipos(id, nome)
         `)
         .eq('id', id)
         .single();
@@ -118,6 +133,7 @@ export const getProjetoById = async (id: string): Promise<Projeto | undefined> =
         observacoes: data.observacoes,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
+        projetoTipoId: data.projeto_tipo_id,
         cliente: data.cliente ? {
             id: data.cliente.id,
             nome: data.cliente.nome,
@@ -125,6 +141,10 @@ export const getProjetoById = async (id: string): Promise<Projeto | undefined> =
             telefone: data.cliente.telefone,
             ativo: data.cliente.ativo,
             createdAt: data.cliente.created_at
+        } : undefined,
+        projetoTipo: data.projeto_tipo ? {
+            id: data.projeto_tipo.id,
+            nome: data.projeto_tipo.nome
         } : undefined
     };
 };
@@ -148,6 +168,7 @@ export const createProjeto = async (projeto: Omit<Projeto, 'id' | 'createdAt' | 
             valor: projeto.valor,
             forma_pagamento: projeto.formaPagamento,
             numero_prestacoes: projeto.numeroPrestacoes,
+            projeto_tipo_id: projeto.projetoTipoId,
             observacoes: projeto.observacoes
         })
         .select()
@@ -197,6 +218,7 @@ export const updateProjeto = async (id: string, projeto: Partial<Omit<Projeto, '
     if (projeto.valor !== undefined) updateData.valor = projeto.valor;
     if (projeto.formaPagamento !== undefined) updateData.forma_pagamento = projeto.formaPagamento;
     if (projeto.numeroPrestacoes !== undefined) updateData.numero_prestacoes = projeto.numeroPrestacoes;
+    if (projeto.projetoTipoId !== undefined) updateData.projeto_tipo_id = projeto.projetoTipoId;
     if (projeto.observacoes !== undefined) updateData.observacoes = projeto.observacoes;
 
     const { error } = await supabase

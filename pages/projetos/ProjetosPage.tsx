@@ -59,6 +59,7 @@ const ProjetosPage: React.FC = () => {
     const filteredProjetos = projetos.filter(p =>
         p.nomeProjeto.toLowerCase().includes(search.toLowerCase()) ||
         p.cliente?.nome?.toLowerCase().includes(search.toLowerCase()) ||
+        p.projetoTipo?.nome?.toLowerCase().includes(search.toLowerCase()) ||
         p.status.toLowerCase().includes(search.toLowerCase())
     );
 
@@ -102,6 +103,7 @@ const ProjetosPage: React.FC = () => {
                             <tr>
                                 <th className="px-6 py-3">Projeto</th>
                                 <th className="px-6 py-3">Cliente</th>
+                                <th className="px-6 py-3">Tipo</th>
                                 <th className="px-6 py-3">Valor</th>
                                 <th className="px-6 py-3">Pagamento</th>
                                 <th className="px-6 py-3">Prestações</th>
@@ -112,7 +114,7 @@ const ProjetosPage: React.FC = () => {
                         <tbody className="divide-y divide-slate-700">
                             {filteredProjetos.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-8 text-center text-slate-500">
+                                    <td colSpan={8} className="px-6 py-8 text-center text-slate-500">
                                         Nenhum projeto encontrado.
                                     </td>
                                 </tr>
@@ -131,6 +133,9 @@ const ProjetosPage: React.FC = () => {
                                             ) : (
                                                 <span className="text-slate-500">Cliente Removido</span>
                                             )}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="text-slate-300">{projeto.projetoTipo?.nome || '-'}</span>
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className="text-white font-medium">{formatCurrency(projeto.valor)}</span>

@@ -203,6 +203,10 @@ const ProjetoDetailPage: React.FC = () => {
                                 <span className="text-white font-medium">{projeto.empresa || '-'}</span>
                             </div>
                             <div>
+                                <span className="block text-slate-500 mb-1">Tipo do Projeto</span>
+                                <span className="text-white font-medium">{projeto.projetoTipo?.nome || 'Não definido'}</span>
+                            </div>
+                            <div>
                                 <span className="block text-slate-500 mb-1">Status do Projeto</span>
                                 <span className={`px-2 py-0.5 rounded text-xs inline-block font-medium ${getStatusBadgeClass(projeto.status)}`}>
                                     {formatStatus(projeto.status)}

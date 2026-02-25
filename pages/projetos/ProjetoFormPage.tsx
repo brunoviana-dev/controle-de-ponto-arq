@@ -4,7 +4,8 @@ import { createProjeto, deleteProjeto, getProjetoById, updateProjeto } from '../
 import { getClientes } from '../../services/clientesService';
 import { createEtapa } from '../../services/projetoEtapasService';
 import { getColaboradores } from '../../services/colaboradorService';
-import { Cliente, Colaborador, ProjetoEtapa } from '../../services/interfaces/types';
+import { Cliente, Colaborador, ProjetoEtapa, ProjetoTipo } from '../../services/interfaces/types';
+import { getTiposAtivos } from '../../services/projetoTiposService';
 import { formatCurrency } from '../../utils/formatters';
 import ConfirmModal from '../../components/ConfirmModal';
 
@@ -29,6 +30,7 @@ const ProjetoFormPage: React.FC = () => {
     const [error, setError] = useState('');
     const [clientes, setClientes] = useState<Cliente[]>([]);
     const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
+    const [projetoTipos, setProjetoTipos] = useState<ProjetoTipo[]>([]);
 
     // Etapas state
     const [etapas, setEtapas] = useState<EtapaInput[]>([]);
@@ -44,7 +46,8 @@ const ProjetoFormPage: React.FC = () => {
         valor: '' as number | '',
         formaPagamento: '',
         numeroPrestacoes: '' as number | '',
-        observacoes: ''
+        observacoes: '',
+        projetoTipoId: ''
     });
 
     useEffect(() => {
@@ -54,12 +57,14 @@ const ProjetoFormPage: React.FC = () => {
     const loadDependencies = async () => {
         try {
             setLoading(true);
-            const [clientesData, colaboradoresData] = await Promise.all([
+            const [clientesData, colaboradoresData, tiposData] = await Promise.all([
                 getClientes(),
-                getColaboradores()
+                getColaboradores(),
+                getTiposAtivos()
             ]);
             setClientes(clientesData);
             setColaboradores(colaboradoresData);
+            setProjetoTipos(tiposData);
 
             if (isEditing && id) {
                 const projeto = await getProjetoById(id);
@@ -75,7 +80,8 @@ const ProjetoFormPage: React.FC = () => {
                         valor: projeto.valor || '',
                         formaPagamento: projeto.formaPagamento || '',
                         numeroPrestacoes: projeto.numeroPrestacoes || '',
-                        observacoes: projeto.observacoes || ''
+                        observacoes: projeto.observacoes || '',
+                        projetoTipoId: projeto.projetoTipoId || ''
                     });
                 } else {
                     setError('Projeto não encontrado');
@@ -372,6 +378,21 @@ const ProjetoFormPage: React.FC = () => {
                                 className="w-full bg-slate-800 border border-slate-600 rounded-md px-3 py-2 text-white focus:border-primary focus:outline-none"
                             />
                         </div>
+                    </div>
+
+                    {/* Tipo do Projeto */}
+                    <div className="md:col-span-1">
+                        <label className="block text-xs text-slate-400 mb-1">Tipo do Projeto (Opcional)</label>
+                        <select
+                            className="w-full bg-slate-800 border border-slate-600 rounded-md px-3 py-2 text-white focus:border-primary focus:outline-none"
+                            value={formData.projetoTipoId}
+                            onChange={e => setFormData({ ...formData, projetoTipoId: e.target.value })}
+                        >
+                            <option value="">Selecione o tipo...</option>
+                            {projetoTipos.map(tipo => (
+                                <option key={tipo.id} value={tipo.id}>{tipo.nome}</option>
+                            ))}
+                        </select>
                     </div>
 
                     <div>
