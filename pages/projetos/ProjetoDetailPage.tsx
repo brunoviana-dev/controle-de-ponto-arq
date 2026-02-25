@@ -257,6 +257,12 @@ const ProjetoDetailPage: React.FC = () => {
                                                 `${projeto.numeroPrestacoes} vezes`}
                                 </span>
                             </div>
+                            {projeto.dataPrimeiroVencimento && (
+                                <div>
+                                    <span className="block text-slate-500 mb-1">1º Vencimento</span>
+                                    <span className="text-white font-medium">{projeto.dataPrimeiroVencimento}</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

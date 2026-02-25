@@ -107,6 +107,7 @@ export interface Projeto {
   valor?: number;
   formaPagamento?: string;
   numeroPrestacoes?: number;
+  dataPrimeiroVencimento?: string;
   observacoes?: string;
   projetoTipoId?: string;
   createdAt: string;
@@ -139,6 +140,7 @@ export interface RelatorioRecebimento {
   valorRecebido: number;
   valorEmAberto: number;
   todasPagas: boolean;
+  statusFinanceiro: 'quitado' | 'em_dia' | 'atrasado';
 }
 
 export interface ProjetoEtapa {

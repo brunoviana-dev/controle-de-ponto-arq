@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { RelatorioRecebimento, ProjetoParcela } from '../../services/interfaces/types';
 import { getRelatorioRecebimento, getParcelasProjeto, registrarPagamentoMultiplasParcelas } from '../../services/projetoParcelasService';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, formatDate, parseLocalDate } from '../../utils/formatters';
 
 const RelatorioRecebimentoPage: React.FC = () => {
     const [relatorios, setRelatorios] = useState<RelatorioRecebimento[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [processingId, setProcessingId] = useState<string | null>(null);
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
 
     // Estados para o Modal
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -111,18 +113,19 @@ const RelatorioRecebimentoPage: React.FC = () => {
                     <div key={rel.projetoId} className="bg-surface border border-slate-700 rounded-xl p-6 hover:border-slate-500 transition-all shadow-lg">
                         <div className="flex justify-between items-start mb-4">
                             <div>
-                                <h3 className="text-lg font-bold text-white">{rel.nomeProjeto}</h3>
-                                <p className="text-sm text-primary font-medium">{rel.clienteNome}</p>
+                                <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors">
+                                    {rel.nomeProjeto}
+                                </h3>
+                                <p className="text-slate-400 text-sm">{rel.clienteNome}</p>
                             </div>
-                            {rel.todasPagas ? (
-                                <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500 text-emerald-500 text-xs font-bold rounded-full uppercase">
-                                    Quitado
-                                </span>
-                            ) : (
-                                <span className="px-3 py-1 bg-amber-500/10 border border-amber-500 text-amber-500 text-xs font-bold rounded-full uppercase">
-                                    Em Aberto
-                                </span>
-                            )}
+                            <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${rel.statusFinanceiro === 'quitado'
+                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                                : rel.statusFinanceiro === 'atrasado'
+                                    ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                                    : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                                }`}>
+                                {rel.statusFinanceiro === 'quitado' ? 'QUITADO' : rel.statusFinanceiro === 'atrasado' ? 'ATRASADO' : 'EM DIA'}
+                            </span>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 mb-6">
@@ -239,10 +242,14 @@ const RelatorioRecebimentoPage: React.FC = () => {
                                                     <p className="font-bold text-white text-base">
                                                         {selectedRel?.numeroParcelas === 0 ? 'Parcela à Vista' : `Parcela ${par.numeroParcela}`}
                                                     </p>
-                                                    <p className="text-xs text-slate-400">
+                                                    <p className={`text-xs ${par.status === 'pendente' && (parseLocalDate(par.dataVencimento)?.setHours(0, 0, 0, 0) || 0) < hoje.getTime()
+                                                        ? 'text-red-400 font-bold'
+                                                        : 'text-slate-400'}`}>
                                                         {par.status === 'recebido'
-                                                            ? `Recebida em ${par.dataRecebimento ? new Date(par.dataRecebimento).toLocaleDateString('pt-BR') : 'data não informada'}`
-                                                            : 'Aguardando pagamento'}
+                                                            ? `Recebida em ${formatDate(par.dataRecebimento)}`
+                                                            : ((parseLocalDate(par.dataVencimento)?.setHours(0, 0, 0, 0) || 0) < hoje.getTime()
+                                                                ? `Vencida em ${formatDate(par.dataVencimento)}`
+                                                                : `Vencimento em ${formatDate(par.dataVencimento)}`)}
                                                     </p>
                                                 </div>
                                             </div>

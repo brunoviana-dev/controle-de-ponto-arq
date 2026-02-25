@@ -47,7 +47,8 @@ const ProjetoFormPage: React.FC = () => {
         formaPagamento: '',
         numeroPrestacoes: '' as number | '',
         observacoes: '',
-        projetoTipoId: ''
+        projetoTipoId: '',
+        dataPrimeiroVencimento: ''
     });
 
     useEffect(() => {
@@ -77,11 +78,12 @@ const ProjetoFormPage: React.FC = () => {
                         dataInicio: projeto.dataInicio || '',
                         dataPrevistaTermino: projeto.dataPrevistaTermino || '',
                         status: projeto.status,
-                        valor: projeto.valor || '',
+                        valor: projeto.valor ?? '',
                         formaPagamento: projeto.formaPagamento || '',
-                        numeroPrestacoes: projeto.numeroPrestacoes || '',
+                        numeroPrestacoes: projeto.numeroPrestacoes ?? '',
                         observacoes: projeto.observacoes || '',
-                        projetoTipoId: projeto.projetoTipoId || ''
+                        projetoTipoId: projeto.projetoTipoId || '',
+                        dataPrimeiroVencimento: projeto.dataPrimeiroVencimento ?? ''
                     });
                 } else {
                     setError('Projeto não encontrado');
@@ -259,17 +261,35 @@ const ProjetoFormPage: React.FC = () => {
                         </select>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">Nome do Projeto *</label>
-                        <input
-                            type="text"
-                            name="nomeProjeto"
-                            value={formData.nomeProjeto}
-                            onChange={handleChange}
-                            className="w-full bg-slate-800 border border-slate-600 rounded-md px-3 py-2 text-white focus:border-primary focus:outline-none"
-                            placeholder="Ex: Reforma Apartamento 101"
-                            required
-                        />
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        {/* Tipo do Projeto */}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-400 mb-1">Tipo do Projeto (Opcional)</label>
+                            <select
+                                className="w-full bg-slate-800 border border-slate-600 rounded-md px-3 py-2 text-white focus:border-primary focus:outline-none"
+                                value={formData.projetoTipoId}
+                                name="projetoTipoId"
+                                onChange={handleChange}
+                            >
+                                <option value="">Selecione o tipo...</option>
+                                {projetoTipos.map(tipo => (
+                                    <option key={tipo.id} value={tipo.id}>{tipo.nome}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="md:col-span-3">
+                            <label className="block text-sm font-medium text-slate-400 mb-1">Nome do Projeto *</label>
+                            <input
+                                type="text"
+                                name="nomeProjeto"
+                                value={formData.nomeProjeto}
+                                onChange={handleChange}
+                                className="w-full bg-slate-800 border border-slate-600 rounded-md px-3 py-2 text-white focus:border-primary focus:outline-none"
+                                placeholder="Ex: Reforma Apartamento 101"
+                                required
+                            />
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -299,7 +319,7 @@ const ProjetoFormPage: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-400 mb-1">Valor do Projeto</label>
                             <input
@@ -344,6 +364,18 @@ const ProjetoFormPage: React.FC = () => {
                                 ))}
                             </select>
                         </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-400 mb-1">
+                                {Number(formData.numeroPrestacoes) > 1 ? '1º Vencimento *' : 'Vencimento'}
+                            </label>
+                            <input
+                                type="date"
+                                name="dataPrimeiroVencimento"
+                                value={formData.dataPrimeiroVencimento}
+                                onChange={handleChange}
+                                className="w-full bg-slate-800 border border-slate-600 rounded-md px-3 py-2 text-white focus:border-primary focus:outline-none"
+                            />
+                        </div>
                     </div>
 
                     <div>
@@ -378,21 +410,6 @@ const ProjetoFormPage: React.FC = () => {
                                 className="w-full bg-slate-800 border border-slate-600 rounded-md px-3 py-2 text-white focus:border-primary focus:outline-none"
                             />
                         </div>
-                    </div>
-
-                    {/* Tipo do Projeto */}
-                    <div className="md:col-span-1">
-                        <label className="block text-xs text-slate-400 mb-1">Tipo do Projeto (Opcional)</label>
-                        <select
-                            className="w-full bg-slate-800 border border-slate-600 rounded-md px-3 py-2 text-white focus:border-primary focus:outline-none"
-                            value={formData.projetoTipoId}
-                            onChange={e => setFormData({ ...formData, projetoTipoId: e.target.value })}
-                        >
-                            <option value="">Selecione o tipo...</option>
-                            {projetoTipos.map(tipo => (
-                                <option key={tipo.id} value={tipo.id}>{tipo.nome}</option>
-                            ))}
-                        </select>
                     </div>
 
                     <div>
@@ -482,7 +499,8 @@ const ProjetoFormPage: React.FC = () => {
                             </div>
                         )}
                     </div>
-                )}
+                )
+                }
 
                 <div className="flex justify-between items-center pt-4">
                     <div>

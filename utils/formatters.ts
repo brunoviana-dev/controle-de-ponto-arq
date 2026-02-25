@@ -36,3 +36,24 @@ export const formatCurrency = (value: number | undefined | null): string => {
         currency: 'BRL'
     }).format(value);
 };
+
+/**
+ * Converte uma query string YYYY-MM-DD para objeto Date em horário local (00:00:00)
+ */
+export const parseLocalDate = (dateStr: string | undefined | null): Date | null => {
+    if (!dateStr) return null;
+    if (dateStr.includes('-') && !dateStr.includes('T')) {
+        const [year, month, day] = dateStr.split('-').map(Number);
+        return new Date(year, month - 1, day);
+    }
+    return new Date(dateStr);
+};
+
+/**
+ * Formata uma data para exibição (DD/MM/AAAA) garantindo horário local para strings YYYY-MM-DD
+ */
+export const formatDate = (dateStr: string | undefined | null): string => {
+    if (!dateStr) return 'Não informado';
+    const date = parseLocalDate(dateStr);
+    return date ? date.toLocaleDateString('pt-BR') : 'Data inválida';
+};

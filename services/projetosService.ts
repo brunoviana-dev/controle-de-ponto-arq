@@ -130,6 +130,7 @@ export const getProjetoById = async (id: string): Promise<Projeto | undefined> =
         valor: data.valor,
         formaPagamento: data.forma_pagamento,
         numeroPrestacoes: data.numero_prestacoes,
+        dataPrimeiroVencimento: data.data_primeiro_vencimento,
         observacoes: data.observacoes,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
@@ -168,6 +169,7 @@ export const createProjeto = async (projeto: Omit<Projeto, 'id' | 'createdAt' | 
             valor: projeto.valor,
             forma_pagamento: projeto.formaPagamento,
             numero_prestacoes: projeto.numeroPrestacoes,
+            data_primeiro_vencimento: projeto.dataPrimeiroVencimento,
             projeto_tipo_id: projeto.projetoTipoId,
             observacoes: projeto.observacoes
         })
@@ -180,7 +182,7 @@ export const createProjeto = async (projeto: Omit<Projeto, 'id' | 'createdAt' | 
 
     // Gerar parcelas se houver valor e prestações
     if (data.valor > 0 && data.numero_prestacoes > 0) {
-        await gerarParcelasAutomaticas(data.id, data.valor, data.numero_prestacoes);
+        await gerarParcelasAutomaticas(data.id, data.valor, data.numero_prestacoes, data.data_primeiro_vencimento);
     }
 
     return {
@@ -195,6 +197,7 @@ export const createProjeto = async (projeto: Omit<Projeto, 'id' | 'createdAt' | 
         valor: data.valor,
         formaPagamento: data.forma_pagamento,
         numeroPrestacoes: data.numero_prestacoes,
+        dataPrimeiroVencimento: data.data_primeiro_vencimento,
         observacoes: data.observacoes,
         createdAt: data.created_at,
         updatedAt: data.updated_at
@@ -218,6 +221,7 @@ export const updateProjeto = async (id: string, projeto: Partial<Omit<Projeto, '
     if (projeto.valor !== undefined) updateData.valor = projeto.valor;
     if (projeto.formaPagamento !== undefined) updateData.forma_pagamento = projeto.formaPagamento;
     if (projeto.numeroPrestacoes !== undefined) updateData.numero_prestacoes = projeto.numeroPrestacoes;
+    if (projeto.dataPrimeiroVencimento !== undefined) updateData.data_primeiro_vencimento = projeto.dataPrimeiroVencimento;
     if (projeto.projetoTipoId !== undefined) updateData.projeto_tipo_id = projeto.projetoTipoId;
     if (projeto.observacoes !== undefined) updateData.observacoes = projeto.observacoes;
 
@@ -232,11 +236,9 @@ export const updateProjeto = async (id: string, projeto: Partial<Omit<Projeto, '
 
     // Se valor ou número de prestações mudou, a função gerarParcelasAutomaticas 
     // lida com a verificação de existência interna (ou podemos forçar aqui se necessário)
-    if (projeto.valor !== undefined || projeto.numeroPrestacoes !== undefined) {
-        const { data: updatedProj } = await supabase.from('projetos').select('valor, numero_prestacoes').eq('id', id).single();
-        if (updatedProj) {
-            await gerarParcelasAutomaticas(id, updatedProj.valor || 0, updatedProj.numero_prestacoes || 0);
-        }
+    const { data: updatedProj } = await supabase.from('projetos').select('valor, numero_prestacoes, data_primeiro_vencimento').eq('id', id).single();
+    if (updatedProj) {
+        await gerarParcelasAutomaticas(id, updatedProj.valor || 0, updatedProj.numero_prestacoes || 0, updatedProj.data_primeiro_vencimento);
     }
 };
 

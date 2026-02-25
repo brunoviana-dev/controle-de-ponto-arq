@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import { ProjetoParcela, RelatorioRecebimento, UserRole } from './interfaces/types';
 import { getCurrentUser } from './authService';
+import { parseLocalDate } from '../utils/formatters';
 
 const ensureAdmin = () => {
     const user = getCurrentUser();
@@ -12,7 +13,7 @@ const ensureAdmin = () => {
 /**
  * Gera parcelas automaticamente para um projeto
  */
-export const gerarParcelasAutomaticas = async (projetoId: string, valorTotal: number, numParcelasInput: number): Promise<void> => {
+export const gerarParcelasAutomaticas = async (projetoId: string, valorTotal: number, numParcelasInput: number, dataPrimeiroVencimento?: string): Promise<void> => {
     ensureAdmin();
 
     // Se for à vista (0), tratamos internamente como 1 parcela para fins de registro de recebimento
@@ -64,10 +65,20 @@ export const gerarParcelasAutomaticas = async (projetoId: string, valorTotal: nu
 
     const novasParcelas = [];
     for (let i = 1; i <= numNovasParcelas; i++) {
+        const numParcelaTotal = recebidas.length + i;
+        let dataVencimento = null;
+
+        if (dataPrimeiroVencimento) {
+            const date = new Date(dataPrimeiroVencimento + 'T12:00:00'); // T12 para evitar problemas de fuso
+            date.setMonth(date.getMonth() + (numParcelaTotal - 1));
+            dataVencimento = date.toISOString().split('T')[0];
+        }
+
         novasParcelas.push({
             projeto_id: projetoId,
-            numero_parcela: recebidas.length + i,
+            numero_parcela: numParcelaTotal,
             valor_parcela: i === numNovasParcelas ? valorUltima : valorBase,
+            data_vencimento: dataVencimento,
             status: 'pendente'
         });
     }
@@ -91,11 +102,14 @@ export const getRelatorioRecebimento = async (): Promise<RelatorioRecebimento[]>
         .select(`
             *,
             cliente:clientes(nome),
-            parcelas:projeto_parcelas(status, valor_parcela)
+            parcelas:projeto_parcelas(status, valor_parcela, data_vencimento)
         `)
         .order('created_at', { ascending: false });
 
     if (error) throw new Error(`Erro ao buscar relatório: ${error.message}`);
+
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
 
     return (data || []).map(p => {
         const parcelas = p.parcelas || [];
@@ -106,6 +120,27 @@ export const getRelatorioRecebimento = async (): Promise<RelatorioRecebimento[]>
         const valorTotal = Number(p.valor || (p as any).valor_projeto || 0);
         const numPrestacoes = Number(p.numero_prestacoes || (p as any).numero_parcelas || 0);
 
+        // Cálculo do Status Financeiro
+        let statusFinanceiro: 'quitado' | 'em_dia' | 'atrasado' = 'em_dia';
+
+        const todasPagas = parcelas.length > 0 && parcelas.every((par: any) => par.status === 'recebido');
+
+        if (todasPagas) {
+            statusFinanceiro = 'quitado';
+        } else {
+            const temAtrasada = parcelas.some((par: any) => {
+                if (par.status !== 'pendente') return false;
+                const dataVenc = parseLocalDate(par.data_vencimento);
+                if (!dataVenc) return false;
+                dataVenc.setHours(0, 0, 0, 0);
+                return dataVenc < hoje;
+            });
+
+            if (temAtrasada) {
+                statusFinanceiro = 'atrasado';
+            }
+        }
+
         return {
             projetoId: p.id,
             nomeProjeto: p.nome_projeto,
@@ -115,7 +150,8 @@ export const getRelatorioRecebimento = async (): Promise<RelatorioRecebimento[]>
             parcelasRecebidas: recebidas.length,
             valorRecebido: valorRecebido,
             valorEmAberto: valorTotal - valorRecebido,
-            todasPagas: parcelas.length > 0 && parcelas.every((par: any) => par.status === 'recebido')
+            todasPagas: todasPagas,
+            statusFinanceiro: statusFinanceiro
         };
     });
 };
