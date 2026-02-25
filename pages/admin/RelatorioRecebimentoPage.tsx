@@ -8,6 +8,7 @@ const RelatorioRecebimentoPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [processingId, setProcessingId] = useState<string | null>(null);
+    const [showQuitados, setShowQuitados] = useState(false);
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
 
@@ -94,12 +95,31 @@ const RelatorioRecebimentoPage: React.FC = () => {
                     <h1 className="text-2xl font-bold text-white">Relatório de Recebimento</h1>
                     <p className="text-slate-400">Controle financeiro e fluxo de caixa por projeto</p>
                 </div>
-                <button
-                    onClick={fetchData}
-                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md transition-colors border border-slate-600 flex items-center gap-2"
-                >
-                    <span>🔄</span> Atualizar
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setShowQuitados(!showQuitados)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-md border transition-all ${showQuitados
+                            ? 'bg-primary/10 border-primary text-primary'
+                            : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'
+                            }`}
+                        title={showQuitados ? "Ocultar projetos quitados" : "Mostrar projetos quitados"}
+                    >
+                        <div className={`w-8 h-4 rounded-full p-0.5 transition-colors ${showQuitados ? 'bg-primary' : 'bg-slate-600'}`}>
+                            <div className={`w-3 h-3 bg-white rounded-full transition-transform ${showQuitados ? 'translate-x-4' : 'translate-x-0'}`} />
+                        </div>
+                        <span className="text-sm font-medium">Exibir Quitados</span>
+                    </button>
+
+                    <button
+                        onClick={fetchData}
+                        className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md transition-colors border border-slate-600 flex items-center gap-2"
+                    >
+                        <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Atualizar
+                    </button>
+                </div>
             </div>
 
             {error && (
@@ -109,7 +129,7 @@ const RelatorioRecebimentoPage: React.FC = () => {
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {relatorios.map((rel) => (
+                {relatorios.filter(rel => showQuitados || rel.statusFinanceiro !== 'quitado').map((rel) => (
                     <div key={rel.projetoId} className="bg-surface border border-slate-700 rounded-xl p-6 hover:border-slate-500 transition-all shadow-lg">
                         <div className="flex justify-between items-start mb-4">
                             <div>
@@ -156,7 +176,7 @@ const RelatorioRecebimentoPage: React.FC = () => {
                                 <span className="text-white font-bold">
                                     {rel.numeroParcelas === 0
                                         ? (rel.parcelasRecebidas > 0 ? '100%' : '0%')
-                                        : Math.round((rel.parcelasRecebidas / rel.numeroParcelas) * 100)}%
+                                        : `${Math.round((rel.parcelasRecebidas / rel.numeroParcelas) * 100)}%`}
                                 </span>
                             </div>
                             <div className="w-full bg-slate-800 rounded-full h-2">
