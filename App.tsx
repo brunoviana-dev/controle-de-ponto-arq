@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { User, UserRole } from './services/interfaces/types';
-import { getCurrentUser, logout } from './services/authService';
+import { UserRole } from './services/interfaces/types';
 import Login from './pages/Login';
 import DashboardLayout from './components/DashboardLayout';
 import CollaboratorsPage from './pages/admin/CollaboratorsPage';
@@ -16,36 +15,7 @@ import ProjetoFormPage from './pages/projetos/ProjetoFormPage';
 import ProjetoDetailPage from './pages/projetos/ProjetoDetailPage';
 import TiposProjetoPage from './pages/admin/TiposProjetoPage';
 import TipoProjetoFormPage from './pages/admin/TipoProjetoFormPage';
-
-// --- Auth Context ---
-interface AuthContextType {
-  user: User | null;
-  refreshUser: () => void;
-  signOut: () => void;
-}
-
-const AuthContext = createContext<AuthContextType>(null!);
-
-export const useAuth = () => useContext(AuthContext);
-
-const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(getCurrentUser());
-
-  const refreshUser = () => {
-    setUser(getCurrentUser());
-  };
-
-  const signOut = () => {
-    logout();
-    setUser(null);
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, refreshUser, signOut }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 // --- Protected Route Wrapper ---
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: UserRole[] }> = ({ children, allowedRoles }) => {
