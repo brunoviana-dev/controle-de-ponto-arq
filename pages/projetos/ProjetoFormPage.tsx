@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { createProjeto, deleteProjeto, getProjetoById, updateProjeto } from '../../services/projetosService';
 import { getClientes } from '../../services/clientesService';
-import { createEtapa } from '../../services/projetoEtapasService';
+import { createEtapa, deleteEtapa, getEtapasByProjeto, updateEtapa } from '../../services/projetoEtapasService';
+import { getEtapasByTipo } from '../../services/projetoTipoEtapasService';
 import { getColaboradores } from '../../services/colaboradorService';
 import { Cliente, Colaborador, ProjetoEtapa, ProjetoTipo } from '../../services/interfaces/types';
 import { getTiposAtivos } from '../../services/projetoTiposService';
@@ -10,6 +11,7 @@ import { formatCurrency } from '../../utils/formatters';
 import ConfirmModal from '../../components/ConfirmModal';
 
 interface EtapaInput {
+    id?: string;
     idTemp?: string;
     nomeEtapa: string;
     dataInicioPrevista: string;
@@ -34,6 +36,7 @@ const ProjetoFormPage: React.FC = () => {
 
     // Etapas state
     const [etapas, setEtapas] = useState<EtapaInput[]>([]);
+    const [initialEtapasIds, setInitialEtapasIds] = useState<string[]>([]);
 
     const [formData, setFormData] = useState({
         clienteId: preSelectedClienteId || '',
@@ -85,6 +88,18 @@ const ProjetoFormPage: React.FC = () => {
                         projetoTipoId: projeto.projetoTipoId || '',
                         dataPrimeiroVencimento: projeto.dataPrimeiroVencimento ?? ''
                     });
+
+                    // Carregar etapas
+                    const etapasData = await getEtapasByProjeto(id);
+                    const mappedEtapas: EtapaInput[] = etapasData.map(e => ({
+                        id: e.id,
+                        nomeEtapa: e.nomeEtapa,
+                        dataInicioPrevista: e.dataInicioPrevista || '',
+                        dataFimPrevista: e.dataFimPrevista || '',
+                        colaboradorId: e.colaboradorId || ''
+                    }));
+                    setEtapas(mappedEtapas);
+                    setInitialEtapasIds(mappedEtapas.map(e => e.id!));
                 } else {
                     setError('Projeto não encontrado');
                 }
@@ -112,12 +127,31 @@ const ProjetoFormPage: React.FC = () => {
         }]);
     };
 
-    const handleRemoveEtapa = (idTemp: string) => {
-        setEtapas(etapas.filter(e => e.idTemp !== idTemp));
+    const handleRemoveEtapa = (idTemp?: string, id?: string) => {
+        if (idTemp) {
+            setEtapas(etapas.filter(e => e.idTemp !== idTemp));
+        } else if (id) {
+            setEtapas(etapas.filter(e => e.id !== id));
+        }
     };
 
-    const handleEtapaChange = (idTemp: string, field: keyof EtapaInput, value: string) => {
-        setEtapas(etapas.map(e => e.idTemp === idTemp ? { ...e, [field]: value } : e));
+    const handleEtapaChange = (identifier: string, isTemp: boolean, field: keyof EtapaInput, value: string) => {
+        setEtapas(etapas.map(e => {
+            const matches = isTemp ? e.idTemp === identifier : e.id === identifier;
+            return matches ? { ...e, [field]: value } : e;
+        }));
+    };
+
+    const handleMoveEtapa = (index: number, direction: 'up' | 'down') => {
+        const newEtapas = [...etapas];
+        const targetIndex = direction === 'up' ? index - 1 : index + 1;
+
+        if (targetIndex >= 0 && targetIndex < newEtapas.length) {
+            const temp = newEtapas[index];
+            newEtapas[index] = newEtapas[targetIndex];
+            newEtapas[targetIndex] = temp;
+            setEtapas(newEtapas);
+        }
     };
 
     const handleDelete = () => {
@@ -131,7 +165,7 @@ const ProjetoFormPage: React.FC = () => {
             await deleteProjeto(id);
             navigate('/projetos');
         } catch (err: any) {
-            alert(`Erro ao excluir projeto: ${err.message}`);
+            alert(`Erro ao excluir projeto: ${err.message} `);
         } finally {
             setSaving(false);
         }
@@ -162,28 +196,45 @@ const ProjetoFormPage: React.FC = () => {
                 projetoId = newProjeto.id;
             }
 
-            // Save stages if any
-            if (projetoId && etapas.length > 0) {
-                // Filter stages with names
-                const stagesToCreate = etapas.filter(e => e.nomeEtapa.trim() !== '');
+            // Sincronizar etapas
+            if (projetoId) {
+                const stagesWithNames = etapas.filter(e => e.nomeEtapa.trim() !== '');
 
-                // Create stages sequentially for simplicity
-                for (let i = 0; i < stagesToCreate.length; i++) {
-                    const stage = stagesToCreate[i];
-                    await createEtapa({
-                        projetoId: projetoId,
-                        nomeEtapa: stage.nomeEtapa,
+                // 1. Identificar exclusões
+                const currentIds = stagesWithNames.filter(e => !!e.id).map(e => e.id!);
+                const idsToDelete = initialEtapasIds.filter(id => !currentIds.includes(id));
+
+                for (const idToDelete of idsToDelete) {
+                    await deleteEtapa(idToDelete);
+                }
+
+                // 2. Atualizar ou Criar
+                for (let i = 0; i < stagesWithNames.length; i++) {
+                    const stage = stagesWithNames[i];
+                    const stageData = {
+                        nomeEtapa: stage.nomeEtapa.trim(),
                         ordem: i + 1,
-                        dataInicioPrevista: stage.dataInicioPrevista || undefined,
-                        dataFimPrevista: stage.dataFimPrevista || undefined,
-                        status: 'nao_iniciado',
-                        colaboradorId: stage.colaboradorId || undefined
-                    });
+                        dataInicioPrevista: stage.dataInicioPrevista || null,
+                        dataFimPrevista: stage.dataFimPrevista || null,
+                        colaboradorId: stage.colaboradorId || null
+                    };
+
+                    if (stage.id) {
+                        // Atualizar existente
+                        await updateEtapa(stage.id, stageData as any);
+                    } else {
+                        // Criar nova
+                        await createEtapa({
+                            projetoId: projetoId,
+                            ...stageData,
+                            status: 'nao_iniciado'
+                        } as any);
+                    }
                 }
             }
 
             if (preSelectedClienteId && dataToSave.clienteId === preSelectedClienteId) {
-                navigate(`/clientes/${dataToSave.clienteId}`);
+                navigate(`/ clientes / ${dataToSave.clienteId} `);
             } else {
                 navigate('/projetos');
             }
@@ -207,6 +258,27 @@ const ProjetoFormPage: React.FC = () => {
                     enderecoObra: selectedCliente.endereco
                 }));
                 return;
+            }
+        }
+
+        // Carregar etapas padrão ao selecionar tipo (apenas em novo projeto)
+        if (name === 'projetoTipoId' && !isEditing) {
+            if (value) {
+                getEtapasByTipo(value).then(etapasPadrao => {
+                    const novasEtapas: EtapaInput[] = etapasPadrao.map(ep => ({
+                        idTemp: Math.random().toString(36).substr(2, 9),
+                        nomeEtapa: ep.nomeEtapa,
+                        dataInicioPrevista: '',
+                        dataFimPrevista: '',
+                        colaboradorId: ''
+                    }));
+                    setEtapas(novasEtapas);
+                }).catch(err => {
+                    console.error('Erro ao buscar etapas padrão:', err);
+                    setEtapas([]);
+                });
+            } else {
+                setEtapas([]);
             }
         }
 
@@ -425,67 +497,73 @@ const ProjetoFormPage: React.FC = () => {
                 </div>
 
                 {/* Seção de Etapas */}
-                {!isEditing && (
-                    <div className="bg-surface p-6 rounded-lg border border-slate-700">
-                        <div className="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
-                            <h2 className="text-lg font-semibold text-white">Etapas do Projeto (Opcional)</h2>
-                            <button
-                                type="button"
-                                onClick={handleAddEtapa}
-                                className="text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded transition-colors"
-                            >
-                                + Adicionar Etapa
-                            </button>
-                        </div>
+                <div className="bg-surface p-6 rounded-lg border border-slate-700">
+                    <div className="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
+                        <h2 className="text-lg font-semibold text-white">Etapas do Projeto (Opcional)</h2>
+                        <button
+                            type="button"
+                            onClick={handleAddEtapa}
+                            className="text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded transition-colors"
+                        >
+                            + Adicionar Etapa
+                        </button>
+                    </div>
 
-                        {etapas.length === 0 ? (
-                            <p className="text-sm text-slate-500 text-center py-4">Nenhuma etapa adicionada.</p>
-                        ) : (
-                            <div className="space-y-4">
-                                {etapas.map((etapa, index) => (
-                                    <div key={etapa.idTemp} className="p-4 bg-slate-800/50 border border-slate-700 rounded-md relative group">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleRemoveEtapa(etapa.idTemp!)}
-                                            className="absolute top-2 right-2 text-slate-500 hover:text-red-500 text-sm"
-                                        >
-                                            &times;
-                                        </button>
-                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                            <div className="md:col-span-1">
-                                                <label className="block text-xs text-slate-500 mb-1">Nome da Etapa</label>
+                    {etapas.length === 0 ? (
+                        <p className="text-sm text-slate-500 text-center py-4">Nenhuma etapa adicionada.</p>
+                    ) : (
+                        <div className="space-y-2">
+                            {etapas.map((etapa, index) => (
+                                <div key={etapa.id || etapa.idTemp} className="p-3 bg-slate-800/50 border border-slate-700 rounded-md group">
+                                    <div className="flex items-center gap-3">
+                                        {/* Botão de Excluir - Início */}
+                                        <div className="pt-5">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveEtapa(etapa.idTemp, etapa.id)}
+                                                className="w-7 h-7 flex items-center justify-center bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded transition-all"
+                                                title="Remover etapa"
+                                            >
+                                                &times;
+                                            </button>
+                                        </div>
+
+                                        {/* Campos da Etapa */}
+                                        <div className="flex-1 grid grid-cols-1 md:grid-cols-10 gap-3">
+                                            <div className="md:col-span-4">
+                                                <label className="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">Nome da Etapa</label>
                                                 <input
                                                     type="text"
                                                     value={etapa.nomeEtapa}
-                                                    onChange={e => handleEtapaChange(etapa.idTemp!, 'nomeEtapa', e.target.value)}
-                                                    className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm focus:border-primary outline-none"
+                                                    onChange={e => handleEtapaChange((etapa.idTemp || etapa.id)!, !!etapa.idTemp, 'nomeEtapa', e.target.value)}
+                                                    className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm focus:border-primary outline-none transition-colors"
                                                     placeholder="Ex: Alvenaria"
                                                 />
                                             </div>
-                                            <div>
-                                                <label className="block text-xs text-slate-500 mb-1">Início Previsto</label>
+                                            <div className="md:col-span-2">
+                                                <label className="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">Início</label>
                                                 <input
                                                     type="date"
                                                     value={etapa.dataInicioPrevista}
-                                                    onChange={e => handleEtapaChange(etapa.idTemp!, 'dataInicioPrevista', e.target.value)}
-                                                    className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm focus:border-primary outline-none"
+                                                    onChange={e => handleEtapaChange((etapa.idTemp || etapa.id)!, !!etapa.idTemp, 'dataInicioPrevista', e.target.value)}
+                                                    className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm focus:border-primary outline-none transition-colors"
                                                 />
                                             </div>
-                                            <div>
-                                                <label className="block text-xs text-slate-500 mb-1">Fim Previsto</label>
+                                            <div className="md:col-span-2">
+                                                <label className="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">Fim</label>
                                                 <input
                                                     type="date"
                                                     value={etapa.dataFimPrevista}
-                                                    onChange={e => handleEtapaChange(etapa.idTemp!, 'dataFimPrevista', e.target.value)}
-                                                    className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm focus:border-primary outline-none"
+                                                    onChange={e => handleEtapaChange((etapa.idTemp || etapa.id)!, !!etapa.idTemp, 'dataFimPrevista', e.target.value)}
+                                                    className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm focus:border-primary outline-none transition-colors"
                                                 />
                                             </div>
-                                            <div>
-                                                <label className="block text-xs text-slate-500 mb-1">Responsável</label>
+                                            <div className="md:col-span-2">
+                                                <label className="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">Responsável</label>
                                                 <select
                                                     value={etapa.colaboradorId}
-                                                    onChange={e => handleEtapaChange(etapa.idTemp!, 'colaboradorId', e.target.value)}
-                                                    className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm focus:border-primary outline-none"
+                                                    onChange={e => handleEtapaChange((etapa.idTemp || etapa.id)!, !!etapa.idTemp, 'colaboradorId', e.target.value)}
+                                                    className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm focus:border-primary outline-none transition-colors"
                                                 >
                                                     <option value="">Sem responsável</option>
                                                     {colaboradores.map(c => (
@@ -494,13 +572,34 @@ const ProjetoFormPage: React.FC = () => {
                                                 </select>
                                             </div>
                                         </div>
+
+                                        {/* Ordenação */}
+                                        <div className="flex flex-col gap-0.5 pt-5">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleMoveEtapa(index, 'up')}
+                                                disabled={index === 0}
+                                                className="w-6 h-6 flex items-center justify-center bg-slate-700/50 hover:bg-slate-600 rounded text-[10px] text-slate-300 disabled:opacity-20 transition-all"
+                                                title="Mover para cima"
+                                            >
+                                                ▲
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleMoveEtapa(index, 'down')}
+                                                disabled={index === etapas.length - 1}
+                                                className="w-6 h-6 flex items-center justify-center bg-slate-700/50 hover:bg-slate-600 rounded text-[10px] text-slate-300 disabled:opacity-20 transition-all"
+                                                title="Mover para baixo"
+                                            >
+                                                ▼
+                                            </button>
+                                        </div>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )
-                }
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
 
                 <div className="flex justify-between items-center pt-4">
                     <div>
@@ -540,7 +639,7 @@ const ProjetoFormPage: React.FC = () => {
                 onClose={() => setIsDeleteModalOpen(false)}
                 onConfirm={handleConfirmDelete}
                 title="Excluir Projeto"
-                message={`Tem certeza que deseja excluir o projeto "${formData.nomeProjeto}"? Esta ação também excluirá todas as parcelas e etapas associadas e NÃO pode ser desfeita.`}
+                message={`Tem certeza que deseja excluir o projeto "${formData.nomeProjeto}" ? Esta ação também excluirá todas as parcelas e etapas associadas e NÃO pode ser desfeita.`}
                 confirmText="Excluir"
                 cancelText="Cancelar"
                 isDanger={true}

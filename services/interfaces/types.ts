@@ -79,6 +79,9 @@ export interface ProjetoTipo {
   id: string;
   nome: string;
   ativo: boolean;
+  contratoTemplatePath?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Cliente {
@@ -159,4 +162,13 @@ export interface ProjetoEtapa {
   colaborador?: {
     nome: string;
   };
+}
+
+export interface ProjetoTipoEtapa {
+  id: string;
+  projetoTipoId: string;
+  nomeEtapa: string;
+  ordem?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }

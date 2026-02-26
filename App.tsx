@@ -14,6 +14,8 @@ import ClienteDetailPage from './pages/clientes/ClienteDetailPage';
 import ProjetosPage from './pages/projetos/ProjetosPage';
 import ProjetoFormPage from './pages/projetos/ProjetoFormPage';
 import ProjetoDetailPage from './pages/projetos/ProjetoDetailPage';
+import TiposProjetoPage from './pages/admin/TiposProjetoPage';
+import TipoProjetoFormPage from './pages/admin/TipoProjetoFormPage';
 
 // --- Auth Context ---
 interface AuthContextType {
@@ -82,6 +84,13 @@ const App: React.FC = () => {
             <Route path="relatorios" element={<ReportsPage />} />
             <Route path="recebimentos" element={<RelatorioRecebimentoPage />} />
             <Route path="ponto-admin" element={<TimesheetPage adminView />} />
+
+            {/* Project Types Routes */}
+            <Route path="tipos-projeto">
+              <Route index element={<TiposProjetoPage />} />
+              <Route path="novo" element={<TipoProjetoFormPage />} />
+              <Route path=":id/editar" element={<TipoProjetoFormPage />} />
+            </Route>
           </Route>
 
           {/* Admin Client/Project Routes */}

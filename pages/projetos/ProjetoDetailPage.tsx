@@ -6,6 +6,8 @@ import { getColaboradores } from '../../services/colaboradorService';
 import { Colaborador, Projeto, ProjetoEtapa } from '../../services/interfaces/types';
 import { formatCurrency, formatStatus, getStatusBadgeClass } from '../../utils/formatters';
 
+import { gerarEUploadContrato } from '../../services/contratoService';
+
 const ProjetoDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [projeto, setProjeto] = useState<Projeto | null>(null);
@@ -13,6 +15,31 @@ const ProjetoDetailPage: React.FC = () => {
     const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [generatingContract, setGeneratingContract] = useState(false);
+
+    // ... (rest of states)
+
+    const handleGerarContrato = async () => {
+        if (!id) return;
+        try {
+            setGeneratingContract(true);
+            const downloadUrl = await gerarEUploadContrato(id);
+
+            // Download automático
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.setAttribute('download', `Contrato_${projeto?.nomeProjeto || 'Projeto'}.docx`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            alert('Contrato gerado com sucesso!');
+        } catch (err: any) {
+            alert('Erro ao gerar contrato: ' + err.message);
+        } finally {
+            setGeneratingContract(false);
+        }
+    };
 
     // Quick add stage state
     const [showAddForm, setShowAddForm] = useState(false);
@@ -172,7 +199,24 @@ const ProjetoDetailPage: React.FC = () => {
                     </Link>
                     <h1 className="text-2xl font-bold text-white mb-0">{projeto.nomeProjeto}</h1>
                 </div>
-                <div className="space-x-2">
+                <div className="flex gap-2">
+                    <button
+                        onClick={handleGerarContrato}
+                        disabled={generatingContract}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-md transition duration-200 flex items-center gap-2 disabled:opacity-50"
+                    >
+                        {generatingContract ? (
+                            <>
+                                <div className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full"></div>
+                                <span>Gerando...</span>
+                            </>
+                        ) : (
+                            <>
+                                <span>📄</span>
+                                Gerar Contrato
+                            </>
+                        )}
+                    </button>
                     <Link
                         to={`/projetos/${projeto.id}/editar`}
                         className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-md transition duration-200"

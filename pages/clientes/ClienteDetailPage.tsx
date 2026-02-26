@@ -5,6 +5,7 @@ import { deleteProjeto, getProjetosByCliente } from '../../services/projetosServ
 import ConfirmModal from '../../components/ConfirmModal';
 import { Cliente, Projeto } from '../../services/interfaces/types';
 import { formatCurrency, formatStatus, getStatusBadgeClass } from '../../utils/formatters';
+import { gerarEUploadContrato } from '../../services/contratoService';
 
 const ClienteDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -13,6 +14,7 @@ const ClienteDetailPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [generatingContractId, setGeneratingContractId] = useState<string | null>(null);
 
     // Estados para o Modal de Confirmação
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -66,6 +68,26 @@ const ClienteDetailPage: React.FC = () => {
         } finally {
             setDeletingId(null);
             setProjetoParaExcluir(null);
+        }
+    };
+
+    const handleGerarContrato = async (projetoId: string, nomeProjeto: string) => {
+        try {
+            setGeneratingContractId(projetoId);
+            const downloadUrl = await gerarEUploadContrato(projetoId);
+
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.setAttribute('download', `Contrato_${nomeProjeto}.docx`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            alert('Contrato gerado com sucesso!');
+        } catch (err: any) {
+            alert('Erro ao gerar contrato: ' + err.message);
+        } finally {
+            setGeneratingContractId(null);
         }
     };
 
@@ -194,6 +216,14 @@ const ClienteDetailPage: React.FC = () => {
                                             {projeto.dataPrevistaTermino && <div>Término: {projeto.dataPrevistaTermino}</div>}
                                         </td>
                                         <td className="px-6 py-4 text-right">
+                                            <button
+                                                onClick={() => handleGerarContrato(projeto.id, projeto.nomeProjeto)}
+                                                disabled={generatingContractId === projeto.id}
+                                                className="inline-block text-xs px-2 py-1 rounded border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 transition-colors disabled:opacity-50 mr-2"
+                                                title="Gerar Contrato"
+                                            >
+                                                {generatingContractId === projeto.id ? '...' : '📄'}
+                                            </button>
                                             <Link
                                                 to={`/projetos/${projeto.id}`}
                                                 className="inline-block text-xs px-2 py-1 rounded border border-blue-500/30 text-blue-400 hover:bg-blue-500/10 transition-colors mr-2"
