@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Colaborador, FolhaPonto, PontoDia } from '../services/interfaces/types';
 import { getColaboradores } from '../services/colaboradorService';
 import { getFolhaPonto, saveFolhaPonto } from '../services/folhaPontoService';
-import { useAuth } from '../App';
+import { useAuth } from '../contexts/AuthContext';
 import { calculateDailyTotal, calculateWorkedMinutes, getMonthName, minutesToTime, timeToMinutes } from '../utils/timeUtils';
 
 interface TimesheetPageProps {
@@ -188,10 +188,10 @@ const TimesheetPage: React.FC<TimesheetPageProps> = ({ adminView }) => {
                 onClick={handleSave}
                 disabled={saving || isLocked}
                 className={`px-6 py-2 rounded font-semibold text-white transition-colors ${isLocked
-                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                    : saving
-                      ? 'bg-slate-600'
-                      : 'bg-primary hover:bg-blue-600'
+                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                  : saving
+                    ? 'bg-slate-600'
+                    : 'bg-primary hover:bg-blue-600'
                   }`}
               >
                 {isLocked ? 'Pagamento Realizado' : saving ? 'Salvando...' : 'Salvar Folha'}
