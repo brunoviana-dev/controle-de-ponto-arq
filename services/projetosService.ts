@@ -21,7 +21,8 @@ export const getProjetos = async (): Promise<Projeto[]> => {
         .select(`
             *,
             cliente:clientes(id, nome),
-            projeto_tipo:projeto_tipos(id, nome)
+            projeto_tipo:projeto_tipos(id, nome),
+            contrato:contratos_gerados(arquivo_path)
         `)
         .order('created_at', { ascending: false });
 
@@ -52,6 +53,11 @@ export const getProjetos = async (): Promise<Projeto[]> => {
         projetoTipo: p.projeto_tipo ? {
             id: p.projeto_tipo.id,
             nome: p.projeto_tipo.nome
+        } : undefined,
+        contrato: (p.contrato && Array.isArray(p.contrato) && p.contrato.length > 0) ? {
+            arquivoPath: p.contrato[0].arquivo_path
+        } : (p.contrato && !Array.isArray(p.contrato) && (p.contrato as any).arquivo_path) ? {
+            arquivoPath: (p.contrato as any).arquivo_path
         } : undefined
     }));
 };
@@ -66,7 +72,8 @@ export const getProjetosByCliente = async (clienteId: string): Promise<Projeto[]
         .from('projetos')
         .select(`
             *,
-            projeto_tipo:projeto_tipos(id, nome)
+            projeto_tipo:projeto_tipos(id, nome),
+            contrato:contratos_gerados(arquivo_path)
         `)
         .eq('cliente_id', clienteId)
         .order('created_at', { ascending: false });
@@ -94,6 +101,11 @@ export const getProjetosByCliente = async (clienteId: string): Promise<Projeto[]
         projetoTipo: p.projeto_tipo ? {
             id: p.projeto_tipo.id,
             nome: p.projeto_tipo.nome
+        } : undefined,
+        contrato: (p.contrato && Array.isArray(p.contrato) && p.contrato.length > 0) ? {
+            arquivoPath: p.contrato[0].arquivo_path
+        } : (p.contrato && !Array.isArray(p.contrato) && (p.contrato as any).arquivo_path) ? {
+            arquivoPath: (p.contrato as any).arquivo_path
         } : undefined
     }));
 };
@@ -109,7 +121,8 @@ export const getProjetoById = async (id: string): Promise<Projeto | undefined> =
         .select(`
             *,
             cliente:clientes(*),
-            projeto_tipo:projeto_tipos(id, nome)
+            projeto_tipo:projeto_tipos(id, nome),
+            contrato:contratos_gerados(arquivo_path)
         `)
         .eq('id', id)
         .single();
@@ -146,6 +159,11 @@ export const getProjetoById = async (id: string): Promise<Projeto | undefined> =
         projetoTipo: data.projeto_tipo ? {
             id: data.projeto_tipo.id,
             nome: data.projeto_tipo.nome
+        } : undefined,
+        contrato: (data.contrato && Array.isArray(data.contrato) && data.contrato.length > 0) ? {
+            arquivoPath: data.contrato[0].arquivo_path
+        } : (data.contrato && !Array.isArray(data.contrato) && (data.contrato as any).arquivo_path) ? {
+            arquivoPath: (data.contrato as any).arquivo_path
         } : undefined
     };
 };

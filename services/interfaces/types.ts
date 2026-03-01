@@ -1,6 +1,7 @@
 export enum UserRole {
   ADMIN = 'ADMIN',
-  COLABORADOR = 'COLABORADOR'
+  COLABORADOR = 'COLABORADOR',
+  CLIENTE = 'CLIENTE'
 }
 
 export interface User {
@@ -94,6 +95,7 @@ export interface Cliente {
   endereco?: string;
   observacoes?: string;
   ativo: boolean;
+  auth_user_id?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -119,6 +121,7 @@ export interface Projeto {
   // Campos opcionais para join
   cliente?: Partial<Cliente>;
   projetoTipo?: Partial<ProjetoTipo>;
+  contrato?: { arquivoPath: string };
 }
 
 export interface ProjetoParcela {

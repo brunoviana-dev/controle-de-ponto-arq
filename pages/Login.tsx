@@ -84,6 +84,16 @@ const Login: React.FC = () => {
               </svg>
             ) : 'Entrar'}
           </button>
+
+          <div className="text-center mt-6 pt-6 border-t border-slate-700">
+            <button
+              type="button"
+              onClick={() => navigate('/area-cliente/login')}
+              className="text-primary hover:text-blue-400 font-medium transition-colors"
+            >
+              Sou Cliente e quero acessar meu portal →
+            </button>
+          </div>
         </form>
       </div>
     </div>

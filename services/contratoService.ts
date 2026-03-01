@@ -96,21 +96,25 @@ export const gerarEUploadContrato = async (projetoId: string): Promise<string> =
     });
 
     // 4. Upload para o Storage
-    const fileName = `${crypto.randomUUID()}.docx`;
-    const filePath = `${projetoId}/${fileName}`;
+    const filePath = `${projetoId}/contrato.docx`;
 
     const { error: uploadError } = await supabase.storage
         .from('contratos-gerados')
-        .upload(filePath, out);
+        .upload(filePath, out, {
+            upsert: true
+        });
 
     if (uploadError) throw new Error(`Erro no upload do contrato: ${uploadError.message}`);
 
-    // 5. Salvar na tabela contratos_gerados
+    // 5. Salvar na tabela contratos_gerados (utilizando upsert baseado na constraint UNIQUE projeto_id)
     const { error: dbError } = await supabase
         .from('contratos_gerados')
-        .insert({
+        .upsert({
             projeto_id: projetoId,
-            arquivo_path: filePath
+            arquivo_path: filePath,
+            data_geracao: new Date().toISOString() // Atualizar timestamp ao gerar novo
+        }, {
+            onConflict: 'projeto_id'
         });
 
     if (dbError) throw new Error(`Erro ao salvar registro do contrato: ${dbError.message}`);

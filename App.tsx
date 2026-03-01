@@ -17,6 +17,14 @@ import TiposProjetoPage from './pages/admin/TiposProjetoPage';
 import TipoProjetoFormPage from './pages/admin/TipoProjetoFormPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
+// Client Area Pages
+import ClienteLoginPage from './pages/area-cliente/ClienteLoginPage';
+import EsqueciSenhaPage from './pages/area-cliente/EsqueciSenhaPage';
+import RedefinirSenhaPage from './pages/area-cliente/RedefinirSenhaPage';
+import AreaClienteLayout from './components/AreaClienteLayout';
+import ClienteDashboardPage from './pages/area-cliente/ClienteDashboardPage';
+import ClienteProjetoDetailPage from './pages/area-cliente/ClienteProjetoDetailPage';
+
 // --- Protected Route Wrapper ---
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: UserRole[] }> = ({ children, allowedRoles }) => {
   const { user } = useAuth();
@@ -86,13 +94,25 @@ const App: React.FC = () => {
             <Route path=":id/editar" element={<ProjetoFormPage />} />
           </Route>
 
-          {/* Shared/Collaborator Routes */}
           <Route path="/ponto" element={
             <ProtectedRoute>
               <DashboardLayout />
             </ProtectedRoute>
           }>
             <Route index element={<TimesheetPage />} />
+          </Route>
+
+          {/* Client Area Routes */}
+          <Route path="/area-cliente/login" element={<ClienteLoginPage />} />
+          <Route path="/area-cliente/esqueci-senha" element={<EsqueciSenhaPage />} />
+          <Route path="/area-cliente/redefinir-senha" element={<RedefinirSenhaPage />} />
+          <Route path="/area-cliente" element={
+            <ProtectedRoute allowedRoles={[UserRole.CLIENTE]}>
+              <AreaClienteLayout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<ClienteDashboardPage />} />
+            <Route path="projeto/:id" element={<ClienteProjetoDetailPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/login" />} />

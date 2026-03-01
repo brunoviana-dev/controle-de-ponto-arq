@@ -6,6 +6,7 @@ import ConfirmModal from '../../components/ConfirmModal';
 import { Cliente, Projeto } from '../../services/interfaces/types';
 import { formatCurrency, formatStatus, getStatusBadgeClass } from '../../utils/formatters';
 import { gerarEUploadContrato } from '../../services/contratoService';
+import { supabase } from '../../services/supabaseClient';
 
 const ClienteDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -78,7 +79,7 @@ const ClienteDetailPage: React.FC = () => {
 
             const link = document.createElement('a');
             link.href = downloadUrl;
-            link.setAttribute('download', `Contrato_${nomeProjeto}.docx`);
+            link.setAttribute('download', `${nomeProjeto}.docx`);
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -88,6 +89,34 @@ const ClienteDetailPage: React.FC = () => {
             alert('Erro ao gerar contrato: ' + err.message);
         } finally {
             setGeneratingContractId(null);
+        }
+    };
+
+    const handleDownloadExistente = async (e: React.MouseEvent, arquivoPath: string, nomeProjeto: string) => {
+        e.stopPropagation();
+        try {
+            const { data, error } = await supabase.storage
+                .from('contratos-gerados')
+                .createSignedUrl(arquivoPath, 60);
+
+            if (error) throw error;
+
+            // Fetch the file and create a blob to force the filename
+            const response = await fetch(data.signedUrl);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${nomeProjeto}.docx`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            // Clean up the object URL
+            window.URL.revokeObjectURL(url);
+        } catch (err: any) {
+            alert('Erro ao baixar contrato');
         }
     };
 
@@ -216,13 +245,22 @@ const ClienteDetailPage: React.FC = () => {
                                             {projeto.dataPrevistaTermino && <div>Término: {projeto.dataPrevistaTermino}</div>}
                                         </td>
                                         <td className="px-6 py-4 text-right">
+                                            {projeto.contrato && (
+                                                <button
+                                                    onClick={(e) => projeto.contrato?.arquivoPath && handleDownloadExistente(e, projeto.contrato.arquivoPath, projeto.nomeProjeto)}
+                                                    className="inline-block text-xs px-2 py-1 rounded border border-blue-500/30 text-blue-400 hover:bg-blue-500/10 transition-colors mr-2"
+                                                    title="Baixar Contrato Existente"
+                                                >
+                                                    📥
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => handleGerarContrato(projeto.id, projeto.nomeProjeto)}
                                                 disabled={generatingContractId === projeto.id}
                                                 className="inline-block text-xs px-2 py-1 rounded border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 transition-colors disabled:opacity-50 mr-2"
-                                                title="Gerar Contrato"
+                                                title={projeto.contrato ? "Gerar Novo Contrato" : "Gerar Contrato"}
                                             >
-                                                {generatingContractId === projeto.id ? '...' : '📄'}
+                                                {generatingContractId === projeto.id ? '...' : (projeto.contrato ? '🔄' : '📄')}
                                             </button>
                                             <Link
                                                 to={`/projetos/${projeto.id}`}

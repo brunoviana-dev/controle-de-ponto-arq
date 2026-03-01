@@ -7,6 +7,7 @@ import { Colaborador, Projeto, ProjetoEtapa } from '../../services/interfaces/ty
 import { formatCurrency, formatStatus, getStatusBadgeClass } from '../../utils/formatters';
 
 import { gerarEUploadContrato } from '../../services/contratoService';
+import { supabase } from '../../services/supabaseClient';
 
 const ProjetoDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -16,6 +17,7 @@ const ProjetoDetailPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [generatingContract, setGeneratingContract] = useState(false);
+    const [contrato, setContrato] = useState<{ arquivo_path: string } | null>(null);
 
     // ... (rest of states)
 
@@ -25,19 +27,64 @@ const ProjetoDetailPage: React.FC = () => {
             setGeneratingContract(true);
             const downloadUrl = await gerarEUploadContrato(id);
 
-            // Download automático
+            // Fetch the file and create a blob to force the filename
+            const response = await fetch(downloadUrl);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+
             const link = document.createElement('a');
-            link.href = downloadUrl;
-            link.setAttribute('download', `Contrato_${projeto?.nomeProjeto || 'Projeto'}.docx`);
+            link.href = url;
+            link.setAttribute('download', `${projeto?.nomeProjeto || 'Projeto'}.docx`);
             document.body.appendChild(link);
             link.click();
             link.remove();
+
+            // Clean up the object URL
+            window.URL.revokeObjectURL(url);
 
             alert('Contrato gerado com sucesso!');
         } catch (err: any) {
             alert('Erro ao gerar contrato: ' + err.message);
         } finally {
             setGeneratingContract(false);
+            // Atualizar estado do contrato localmente
+            if (id) loadContrato(id);
+        }
+    };
+
+    const loadContrato = async (projetoId: string) => {
+        const { data } = await supabase
+            .from('contratos_gerados')
+            .select('arquivo_path')
+            .eq('projeto_id', projetoId)
+            .single();
+        setContrato(data);
+    };
+
+    const handleDownloadContrato = async () => {
+        if (!contrato || !projeto) return;
+        try {
+            const { data, error } = await supabase.storage
+                .from('contratos-gerados')
+                .createSignedUrl(contrato.arquivo_path, 60);
+            if (error) throw error;
+
+            // Fetch the file and create a blob to force the filename
+            const response = await fetch(data.signedUrl);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${projeto.nomeProjeto}.docx`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            // Clean up the object URL
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            alert('Erro ao baixar contrato');
         }
     };
 
@@ -72,7 +119,8 @@ const ProjetoDetailPage: React.FC = () => {
             const [projetoData, etapasData, colaboradoresData] = await Promise.all([
                 getProjetoById(projetoId),
                 getEtapasByProjeto(projetoId),
-                getColaboradores()
+                getColaboradores(),
+                loadContrato(projetoId)
             ]);
 
             if (projetoData) {
@@ -200,20 +248,29 @@ const ProjetoDetailPage: React.FC = () => {
                     <h1 className="text-2xl font-bold text-white mb-0">{projeto.nomeProjeto}</h1>
                 </div>
                 <div className="flex gap-2">
+                    {contrato && (
+                        <button
+                            onClick={handleDownloadContrato}
+                            className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-md transition duration-200 flex items-center gap-2"
+                        >
+                            <span>📥</span>
+                            Baixar Contrato
+                        </button>
+                    )}
                     <button
                         onClick={handleGerarContrato}
                         disabled={generatingContract}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-md transition duration-200 flex items-center gap-2 disabled:opacity-50"
+                        className={`${contrato ? 'bg-amber-600 hover:bg-amber-500' : 'bg-emerald-600 hover:bg-emerald-500'} text-white px-4 py-2 rounded-md transition duration-200 flex items-center gap-2 disabled:opacity-50`}
                     >
                         {generatingContract ? (
                             <>
                                 <div className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full"></div>
-                                <span>Gerando...</span>
+                                <span>{contrato ? 'Atualizando...' : 'Gerando...'}</span>
                             </>
                         ) : (
                             <>
                                 <span>📄</span>
-                                Gerar Contrato
+                                {contrato ? 'Gerar Novo' : 'Gerar Contrato'}
                             </>
                         )}
                     </button>
