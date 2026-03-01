@@ -114,16 +114,22 @@ const ContaFormPage: React.FC = () => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1">Valor (R$) *</label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            required
-                            value={formData.valor || ''}
-                            onChange={(e) => setFormData({ ...formData, valor: parseFloat(e.target.value) })}
-                            className="w-full px-4 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                            placeholder="0,00"
-                        />
+                        <label className="block text-sm font-medium text-slate-300 mb-1">Valor *</label>
+                        <div className="relative">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">R$</span>
+                            <input
+                                type="text"
+                                required
+                                value={formData.valor ? formData.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''}
+                                onChange={(e) => {
+                                    const value = e.target.value.replace(/\D/g, '');
+                                    const floatValue = parseFloat(value) / 100;
+                                    setFormData({ ...formData, valor: floatValue || 0 });
+                                }}
+                                className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-mono"
+                                placeholder="0,00"
+                            />
+                        </div>
                     </div>
 
                     <div>
