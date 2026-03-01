@@ -186,3 +186,12 @@ export interface ContaPagar {
   recorrente: boolean;
   created_at?: string;
 }
+export interface ContaPagarPagamento {
+  id: string;
+  conta_id: string;
+  data_pagamento: string; // ISO date YYYY-MM-DD
+  valor_pago: number;
+  mes_referencia: number;
+  ano_referencia: number;
+  created_at?: string;
+}

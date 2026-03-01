@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { ContaPagar } from './interfaces/types';
+import { ContaPagar, ContaPagarPagamento } from './interfaces/types';
 
 export const contasPagarService = {
     async getContasPorMes(mes: number, ano: number): Promise<ContaPagar[]> {
@@ -72,5 +72,35 @@ export const contasPagarService = {
             .single();
 
         return { data, error };
+    },
+
+    async getPagamentosPorMes(mes: number, ano: number): Promise<ContaPagarPagamento[]> {
+        const { data, error } = await supabase
+            .from('contas_pagar_pagamentos')
+            .select('*')
+            .eq('mes_referencia', mes)
+            .eq('ano_referencia', ano);
+
+        if (error) {
+            console.error('Erro ao buscar pagamentos:', error);
+            throw error;
+        }
+
+        return data || [];
+    },
+
+    async registrarPagamento(pagamento: Omit<ContaPagarPagamento, 'id' | 'created_at'>): Promise<ContaPagarPagamento> {
+        const { data, error } = await supabase
+            .from('contas_pagar_pagamentos')
+            .insert([pagamento])
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Erro ao registrar pagamento:', error);
+            throw error;
+        }
+
+        return data;
     }
 };
