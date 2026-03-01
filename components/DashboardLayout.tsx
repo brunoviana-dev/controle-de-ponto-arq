@@ -58,12 +58,6 @@ const DashboardLayout: React.FC = () => {
               <NavLink to="/admin/tipos-projeto" className={navClass}>
                 <span>🏷️</span> <span>Tipos de Projeto</span>
               </NavLink>
-              <NavLink to="/admin/relatorios" className={navClass}>
-                <span>📊</span> <span>Relatório de Pagamento</span>
-              </NavLink>
-              <NavLink to="/admin/recebimentos" className={navClass}>
-                <span>💰</span> <span>Relatório de Recebimento</span>
-              </NavLink>
               <NavLink to="/admin/ponto-admin" className={navClass}>
                 <span>📅</span> <span>Gerenciar Pontos</span>
               </NavLink>
@@ -71,6 +65,12 @@ const DashboardLayout: React.FC = () => {
               <div className="text-xs font-semibold text-slate-500 uppercase px-3 pt-4 pb-2">Financeiro</div>
               <NavLink to="/admin/financeiro/contas-pagar" className={navClass}>
                 <span>📝</span> <span>Contas a Pagar</span>
+              </NavLink>
+              <NavLink to="/admin/relatorios" className={navClass}>
+                <span>📊</span> <span>Relatório de Pagamento</span>
+              </NavLink>
+              <NavLink to="/admin/recebimentos" className={navClass}>
+                <span>💰</span> <span>Relatório de Recebimento</span>
               </NavLink>
             </>
           )}
