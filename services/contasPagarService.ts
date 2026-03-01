@@ -9,8 +9,8 @@ export const contasPagarService = {
         const { data, error } = await supabase
             .from('contas_pagar')
             .select('*')
-            .gte('data_vencimento', startDate)
             .lte('data_vencimento', endDate)
+            .or(`data_vencimento.gte.${startDate},recorrente.eq.true`)
             .order('data_vencimento', { ascending: true });
 
         if (error) {
