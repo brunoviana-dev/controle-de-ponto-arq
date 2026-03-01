@@ -75,10 +75,14 @@ const DashboardLayout: React.FC = () => {
             </>
           )}
 
-          <div className="text-xs font-semibold text-slate-500 uppercase px-3 pt-4 pb-2">Meu Espaço</div>
-          <NavLink to="/ponto" end className={navClass}>
-            <span>🕒</span> <span>Minha Folha</span>
-          </NavLink>
+          {user?.role !== UserRole.ADMIN && (
+            <>
+              <div className="text-xs font-semibold text-slate-500 uppercase px-3 pt-4 pb-2">Meu Espaço</div>
+              <NavLink to="/ponto" end className={navClass}>
+                <span>🕒</span> <span>Minha Folha</span>
+              </NavLink>
+            </>
+          )}
 
         </nav>
 
