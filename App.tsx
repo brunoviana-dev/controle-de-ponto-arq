@@ -15,6 +15,8 @@ import ProjetoFormPage from './pages/projetos/ProjetoFormPage';
 import ProjetoDetailPage from './pages/projetos/ProjetoDetailPage';
 import TiposProjetoPage from './pages/admin/TiposProjetoPage';
 import TipoProjetoFormPage from './pages/admin/TipoProjetoFormPage';
+import ContasPagarPage from './pages/financeiro/ContasPagarPage';
+import ContaFormPage from './pages/financeiro/ContaFormPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 // Client Area Pages
@@ -68,6 +70,15 @@ const App: React.FC = () => {
               <Route index element={<TiposProjetoPage />} />
               <Route path="novo" element={<TipoProjetoFormPage />} />
               <Route path=":id/editar" element={<TipoProjetoFormPage />} />
+            </Route>
+
+            {/* Financeiro Routes */}
+            <Route path="financeiro">
+              <Route path="contas-pagar">
+                <Route index element={<ContasPagarPage />} />
+                <Route path="novo" element={<ContaFormPage />} />
+                <Route path=":id/editar" element={<ContaFormPage />} />
+              </Route>
             </Route>
           </Route>
 

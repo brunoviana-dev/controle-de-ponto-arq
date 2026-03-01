@@ -175,3 +175,14 @@ export interface ProjetoTipoEtapa {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface ContaPagar {
+  id: string;
+  descricao: string;
+  categoria?: string;
+  valor: number;
+  data_vencimento: string; // ISO date YYYY-MM-DD
+  observacoes?: string;
+  recorrente: boolean;
+  created_at?: string;
+}

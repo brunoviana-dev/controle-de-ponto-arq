@@ -67,6 +67,11 @@ const DashboardLayout: React.FC = () => {
               <NavLink to="/admin/ponto-admin" className={navClass}>
                 <span>📅</span> <span>Gerenciar Pontos</span>
               </NavLink>
+
+              <div className="text-xs font-semibold text-slate-500 uppercase px-3 pt-4 pb-2">Financeiro</div>
+              <NavLink to="/admin/financeiro/contas-pagar" className={navClass}>
+                <span>📝</span> <span>Contas a Pagar</span>
+              </NavLink>
             </>
           )}
 
