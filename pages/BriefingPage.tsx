@@ -244,7 +244,7 @@ const BriefingPage: React.FC = () => {
                         <h1 className="text-3xl md:text-5xl font-serif font-bold text-white mb-4 drop-shadow-lg">
                             {empresa?.titulo_briefing || 'Briefing de Projeto'}
                         </h1>
-                        <p className="text-white/90 text-sm md:text-base max-w-3xl mx-auto font-light leading-relaxed hidden sm:block whitespace-pre-line">
+                        <p className="text-white/90 text-sm md:text-base max-w-3xl mx-auto font-light leading-relaxed px-4 sm:px-0 whitespace-pre-line">
                             {empresa?.texto_briefing || 'Transformando sonhos em espaços vividos. Preencha o briefing abaixo para iniciarmos a jornada de criação do seu novo projeto.'}
                         </p>
                     </div>
