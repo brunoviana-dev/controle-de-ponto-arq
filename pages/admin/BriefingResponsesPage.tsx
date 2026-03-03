@@ -55,12 +55,17 @@ const BriefingResponsesPage: React.FC = () => {
         return matchesStatus && matchesTipo;
     });
 
-    const counts = {
+    const statusCounts = {
         todos: respostas.length,
         novo: respostas.filter(r => r.status === 'novo').length,
         em_contato: respostas.filter(r => r.status === 'em_contato').length,
         convertido: respostas.filter(r => r.status === 'convertido').length,
         descartado: respostas.filter(r => r.status === 'descartado').length,
+    };
+
+    const getTipoCount = (tipoId: string | 'todos') => {
+        if (tipoId === 'todos') return respostas.length;
+        return respostas.filter(r => r.tipo_projeto_id === tipoId).length;
     };
 
     const handleUpdateStatus = async (id: string, status: BriefingStatus) => {
@@ -127,60 +132,74 @@ const BriefingResponsesPage: React.FC = () => {
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-4">
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-bold">Respostas do Briefing</h1>
                         <p className="text-slate-400">Gerencie os contatos e propostas recebidas pelo formulário público.</p>
                     </div>
 
-                    <div className="flex p-1 bg-slate-800/50 rounded-xl border border-slate-700/50 self-start">
-                        {(['todos', 'novo', 'em_contato', 'convertido', 'descartado'] as const).map((filter) => (
-                            <button
-                                key={filter}
-                                onClick={() => setActiveFilter(filter)}
-                                className={`px-4 py-2 text-xs font-bold rounded-lg transition-all capitalize flex items-center gap-2
-                                    ${activeFilter === filter
-                                        ? 'bg-slate-700 text-white shadow-lg'
-                                        : 'text-slate-400 hover:text-white hover:bg-slate-700/30'}
-                                `}
-                            >
-                                {filter.replace('_', ' ')}
-                                <span className={`px-1.5 py-0.5 rounded-md text-[10px] 
-                                    ${activeFilter === filter ? 'bg-primary/20 text-primary' : 'bg-slate-700 text-slate-400'}
-                                `}>
-                                    {counts[filter]}
-                                </span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
+                    <div className="flex flex-wrap items-center gap-4">
+                        {/* Filtros de Status */}
+                        <div className="flex p-1 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                            {(['todos', 'novo', 'em_contato', 'convertido', 'descartado'] as const).map((filter) => (
+                                <button
+                                    key={filter}
+                                    onClick={() => setActiveFilter(filter)}
+                                    className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all capitalize flex items-center gap-2
+                                        ${activeFilter === filter
+                                            ? 'bg-slate-700 text-white shadow-lg'
+                                            : 'text-slate-400 hover:text-white hover:bg-slate-700/30'}
+                                    `}
+                                >
+                                    {filter.replace('_', ' ')}
+                                    <span className={`px-1.5 py-0.5 rounded-md text-[10px] 
+                                        ${activeFilter === filter ? 'bg-primary/20 text-primary' : 'bg-slate-700 text-slate-400'}
+                                    `}>
+                                        {statusCounts[filter]}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
 
-                <div className="flex items-center gap-2 bg-slate-800/50 p-2 rounded-xl border border-slate-700/50 self-start">
-                    <span className="text-xs font-bold text-slate-500 px-2 uppercase tracking-wider">Filtrar por Projeto:</span>
-                    <div className="flex flex-wrap gap-2">
-                        <button
-                            onClick={() => setActiveTipoFilter('todos')}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all
-                                ${activeTipoFilter === 'todos'
-                                    ? 'bg-primary text-white'
-                                    : 'bg-slate-700/50 text-slate-400 hover:text-white'}
-                            `}
-                        >
-                            Todos
-                        </button>
-                        {tiposProjeto.map(t => (
-                            <button
-                                key={t.id}
-                                onClick={() => setActiveTipoFilter(t.id)}
-                                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all
-                                    ${activeTipoFilter === t.id
-                                        ? 'bg-primary text-white'
-                                        : 'bg-slate-700/50 text-slate-400 hover:text-white'}
-                                `}
-                            >
-                                {t.nome}
-                            </button>
-                        ))}
+                        {/* Filtros de Tipo de Projeto */}
+                        <div className="flex items-center gap-2 bg-slate-800/50 p-1 rounded-xl border border-slate-700/50">
+                            <span className="text-[10px] font-bold text-slate-500 px-2 uppercase tracking-wider hidden sm:inline">Projeto:</span>
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => setActiveTipoFilter('todos')}
+                                    className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all flex items-center gap-2
+                                        ${activeTipoFilter === 'todos'
+                                            ? 'bg-primary text-white shadow-lg'
+                                            : 'text-slate-400 hover:text-white hover:bg-slate-700/30'}
+                                    `}
+                                >
+                                    Todos
+                                    <span className={`px-1.5 py-0.5 rounded-md text-[10px] 
+                                        ${activeTipoFilter === 'todos' ? 'bg-white/20' : 'bg-slate-700'}
+                                    `}>
+                                        {getTipoCount('todos')}
+                                    </span>
+                                </button>
+                                {tiposProjeto.map(t => (
+                                    <button
+                                        key={t.id}
+                                        onClick={() => setActiveTipoFilter(t.id)}
+                                        className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all flex items-center gap-2
+                                            ${activeTipoFilter === t.id
+                                                ? 'bg-primary text-white shadow-lg'
+                                                : 'text-slate-400 hover:text-white hover:bg-slate-700/30'}
+                                        `}
+                                    >
+                                        {t.nome}
+                                        <span className={`px-1.5 py-0.5 rounded-md text-[10px] 
+                                            ${activeTipoFilter === t.id ? 'bg-white/20' : 'bg-slate-700'}
+                                        `}>
+                                            {getTipoCount(t.id)}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
