@@ -19,6 +19,7 @@ import ContasPagarPage from './pages/financeiro/ContasPagarPage';
 import ContaFormPage from './pages/financeiro/ContaFormPage';
 import BriefingTemplatePage from './pages/admin/BriefingTemplatePage';
 import BriefingResponsesPage from './pages/admin/BriefingResponsesPage';
+import EmpresaPage from './pages/admin/EmpresaPage';
 import BriefingPage from './pages/BriefingPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
@@ -54,7 +55,7 @@ const App: React.FC = () => {
       <HashRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/briefing" element={<BriefingPage />} />
+          <Route path="/briefing/:slug" element={<BriefingPage />} />
 
           <Route path="/" element={<Navigate to="/ponto" replace />} />
 
@@ -75,6 +76,8 @@ const App: React.FC = () => {
               <Route path="novo" element={<TipoProjetoFormPage />} />
               <Route path=":id/editar" element={<TipoProjetoFormPage />} />
             </Route>
+
+            <Route path="empresa" element={<EmpresaPage />} />
 
             {/* Briefing Routes */}
             <Route path="briefing-template" element={<BriefingTemplatePage />} />

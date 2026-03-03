@@ -132,74 +132,70 @@ const BriefingResponsesPage: React.FC = () => {
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-4">
-                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold">Respostas do Briefing</h1>
+                        <h1 className="text-2xl font-bold text-white">Respostas do Briefing</h1>
                         <p className="text-slate-400">Gerencie os contatos e propostas recebidas pelo formulário público.</p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-4">
-                        {/* Filtros de Status */}
-                        <div className="flex p-1 bg-slate-800/50 rounded-xl border border-slate-700/50">
-                            {(['todos', 'novo', 'em_contato', 'convertido', 'descartado'] as const).map((filter) => (
-                                <button
-                                    key={filter}
-                                    onClick={() => setActiveFilter(filter)}
-                                    className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all capitalize flex items-center gap-2
-                                        ${activeFilter === filter
-                                            ? 'bg-slate-700 text-white shadow-lg'
-                                            : 'text-slate-400 hover:text-white hover:bg-slate-700/30'}
-                                    `}
-                                >
-                                    {filter.replace('_', ' ')}
-                                    <span className={`px-1.5 py-0.5 rounded-md text-[10px] 
-                                        ${activeFilter === filter ? 'bg-primary/20 text-primary' : 'bg-slate-700 text-slate-400'}
-                                    `}>
-                                        {statusCounts[filter]}
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
+                    <div className="flex p-1 bg-slate-800/50 rounded-xl border border-slate-700/50 self-start md:self-auto">
+                        {(['todos', 'novo', 'em_contato', 'convertido', 'descartado'] as const).map((filter) => (
+                            <button
+                                key={filter}
+                                onClick={() => setActiveFilter(filter)}
+                                className={`px-4 py-2 text-xs font-bold rounded-lg transition-all capitalize flex items-center gap-2 whitespace-nowrap
+                                    ${activeFilter === filter
+                                        ? 'bg-slate-700 text-white shadow-lg'
+                                        : 'text-slate-400 hover:text-white hover:bg-slate-700/30'}
+                                `}
+                            >
+                                {filter.replace('_', ' ')}
+                                <span className={`px-1.5 py-0.5 rounded-md text-[10px] 
+                                    ${activeFilter === filter ? 'bg-primary/20 text-primary' : 'bg-slate-700 text-slate-400'}
+                                `}>
+                                    {statusCounts[filter]}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
 
-                        {/* Filtros de Tipo de Projeto */}
-                        <div className="flex items-center gap-2 bg-slate-800/50 p-1 rounded-xl border border-slate-700/50">
-                            <span className="text-[10px] font-bold text-slate-500 px-2 uppercase tracking-wider hidden sm:inline">Projeto:</span>
-                            <div className="flex items-center gap-1">
-                                <button
-                                    onClick={() => setActiveTipoFilter('todos')}
-                                    className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all flex items-center gap-2
-                                        ${activeTipoFilter === 'todos'
-                                            ? 'bg-primary text-white shadow-lg'
-                                            : 'text-slate-400 hover:text-white hover:bg-slate-700/30'}
-                                    `}
-                                >
-                                    Todos
-                                    <span className={`px-1.5 py-0.5 rounded-md text-[10px] 
-                                        ${activeTipoFilter === 'todos' ? 'bg-white/20' : 'bg-slate-700'}
-                                    `}>
-                                        {getTipoCount('todos')}
-                                    </span>
-                                </button>
-                                {tiposProjeto.map(t => (
-                                    <button
-                                        key={t.id}
-                                        onClick={() => setActiveTipoFilter(t.id)}
-                                        className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all flex items-center gap-2
-                                            ${activeTipoFilter === t.id
-                                                ? 'bg-primary text-white shadow-lg'
-                                                : 'text-slate-400 hover:text-white hover:bg-slate-700/30'}
-                                        `}
-                                    >
-                                        {t.nome}
-                                        <span className={`px-1.5 py-0.5 rounded-md text-[10px] 
-                                            ${activeTipoFilter === t.id ? 'bg-white/20' : 'bg-slate-700'}
-                                        `}>
-                                            {getTipoCount(t.id)}
-                                        </span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                <div className="flex items-center gap-4 bg-slate-800/50 p-2 rounded-xl border border-slate-700/50 self-start">
+                    <span className="text-[10px] font-black text-slate-500 px-2 uppercase tracking-widest pl-4">Filtrar por Projeto:</span>
+                    <div className="flex flex-wrap gap-2 pr-2">
+                        <button
+                            onClick={() => setActiveTipoFilter('todos')}
+                            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2
+                                ${activeTipoFilter === 'todos'
+                                    ? 'bg-primary text-white shadow-lg'
+                                    : 'bg-slate-700/50 text-slate-400 hover:text-white hover:bg-slate-700/30'}
+                            `}
+                        >
+                            Todos
+                            <span className={`px-1.5 py-0.5 rounded-md text-[10px] 
+                                ${activeTipoFilter === 'todos' ? 'bg-white/20' : 'bg-slate-700'}
+                            `}>
+                                {getTipoCount('todos')}
+                            </span>
+                        </button>
+                        {tiposProjeto.map(t => (
+                            <button
+                                key={t.id}
+                                onClick={() => setActiveTipoFilter(t.id)}
+                                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2
+                                    ${activeTipoFilter === t.id
+                                        ? 'bg-primary text-white shadow-lg'
+                                        : 'bg-slate-700/50 text-slate-400 hover:text-white hover:bg-slate-700/30'}
+                                `}
+                            >
+                                {t.nome}
+                                <span className={`px-1.5 py-0.5 rounded-md text-[10px] 
+                                    ${activeTipoFilter === t.id ? 'bg-white/20' : 'bg-slate-700'}
+                                `}>
+                                    {getTipoCount(t.id)}
+                                </span>
+                            </button>
+                        ))}
                     </div>
                 </div>
             </div>
@@ -266,7 +262,7 @@ const BriefingResponsesPage: React.FC = () => {
                                                 <option value="descartado" className="bg-slate-800 text-white">Descartado</option>
                                             </select>
                                         </td>
-                                        <td className="px-6 py-4 text-right">
+                                        <td className="px-6 py-4 text-right space-x-2 whitespace-nowrap">
                                             <button
                                                 onClick={() => {
                                                     setSelectedResposta(r);
@@ -274,8 +270,16 @@ const BriefingResponsesPage: React.FC = () => {
                                                 }}
                                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-all border border-blue-500/20 text-xs font-bold"
                                             >
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
                                                 Ver
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedResposta(r);
+                                                    setIsConfirmDeleteOpen(true);
+                                                }}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs font-bold rounded-lg transition-all"
+                                            >
+                                                Deletar
                                             </button>
                                         </td>
                                     </tr>
@@ -367,13 +371,7 @@ const BriefingResponsesPage: React.FC = () => {
                         </div>
 
                         {/* Footer do Modal */}
-                        <div className="p-6 border-t border-slate-700 bg-slate-800/50 flex justify-between">
-                            <button
-                                onClick={() => setIsConfirmDeleteOpen(true)}
-                                className="px-4 py-2 bg-red-500/10 text-red-500 hover:bg-red-500 text-sm font-bold rounded-lg transition-all border border-red-500/20 hover:text-white"
-                            >
-                                Excluir Registro
-                            </button>
+                        <div className="p-6 border-t border-slate-700 bg-slate-800/50 flex justify-end">
                             <button
                                 onClick={() => setIsDetailModalOpen(false)}
                                 className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold rounded-lg transition-all"
@@ -394,7 +392,7 @@ const BriefingResponsesPage: React.FC = () => {
                 confirmText="Sim, Excluir"
                 cancelText="Cancelar"
             />
-        </div>
+        </div >
     );
 };
 

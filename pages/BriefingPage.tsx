@@ -1,14 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { BriefingAnexo, BriefingOpcao, BriefingPergunta, ProjetoTipo } from '../services/interfaces/types';
+import { useParams, useNavigate } from 'react-router-dom';
+import { BriefingAnexo, BriefingOpcao, BriefingPergunta, ProjetoTipo, Empresa } from '../services/interfaces/types';
 import { briefingPerguntasService } from '../services/briefingPerguntasService';
 import { getTiposAtivos } from '../services/projetoTiposService';
 import { briefingRespostasService } from '../services/briefingRespostasService';
+import { getEmpresaBySlug } from '../services/empresaService';
 
 const BriefingPage: React.FC = () => {
+    const { slug } = useParams<{ slug: string }>();
+    const navigate = useNavigate();
+    const [empresa, setEmpresa] = useState<Empresa | null>(null);
     const [perguntas, setPerguntas] = useState<BriefingPergunta[]>([]);
     const [tiposProjeto, setTiposProjeto] = useState<ProjetoTipo[]>([]);
     const [loading, setLoading] = useState(true);
     const [submitted, setSubmitted] = useState(false);
+    const [notFound, setNotFound] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isSending, setIsSending] = useState(false);
 
@@ -24,14 +30,27 @@ const BriefingPage: React.FC = () => {
 
     useEffect(() => {
         const loadInitialData = async () => {
+            if (!slug) {
+                setNotFound(true);
+                setLoading(false);
+                return;
+            }
+
             try {
                 setLoading(true);
-                const [perguntasData, tiposData] = await Promise.all([
+                const [empresaData, perguntasData, tiposData] = await Promise.all([
+                    getEmpresaBySlug(slug),
                     briefingPerguntasService.getPerguntas(),
                     getTiposAtivos()
                 ]);
-                setPerguntas(perguntasData.filter(p => p.ativo));
-                setTiposProjeto(tiposData);
+
+                if (!empresaData) {
+                    setNotFound(true);
+                } else {
+                    setEmpresa(empresaData);
+                    setPerguntas(perguntasData.filter(p => p.ativo));
+                    setTiposProjeto(tiposData);
+                }
             } catch (err: any) {
                 console.error('Erro ao carregar dados:', err);
                 setError('Ocorreu um erro ao carregar o formulário. Por favor, tente novamente mais tarde.');
@@ -41,7 +60,7 @@ const BriefingPage: React.FC = () => {
         };
 
         loadInitialData();
-    }, []);
+    }, [slug]);
 
     const handleChangeFixed = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setFixedData({ ...fixedData, [e.target.name]: e.target.value });
@@ -180,10 +199,30 @@ const BriefingPage: React.FC = () => {
         );
     }
 
+    if (notFound) {
+        return (
+            <div className="min-h-screen bg-[#F5F4F1] flex items-center justify-center p-4 font-sans text-center">
+                <div className="max-w-md bg-white border border-[#E6E2DC] rounded-2xl p-8 shadow-xl">
+                    <div className="text-6xl mb-6">🏜️</div>
+                    <h1 className="text-2xl font-serif font-bold text-[#2E2E2E] mb-2">Briefing não encontrado</h1>
+                    <p className="text-[#6B6B6B] mb-8">
+                        O link acessado não corresponde a nenhum escritório ativo ou o endereço está incorreto.
+                    </p>
+                    <button
+                        onClick={() => navigate('/login')}
+                        className="px-8 py-3 bg-[#C8A46A] hover:bg-[#B69359] text-white font-bold rounded-lg transition-all"
+                    >
+                        Voltar
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-[#F5F4F1] text-[#2E2E2E] font-sans">
             {/* Header Institucional / Hero */}
-            <div className="relative h-[220px] md:h-[350px] w-full overflow-hidden bg-[#0A0A0A]">
+            <div className="relative h-[320px] md:h-[550px] w-full overflow-hidden bg-[#0A0A0A]">
                 <img
                     src="/hero-briefing.png"
                     alt="Projeto Arquitetônico"
@@ -191,20 +230,28 @@ const BriefingPage: React.FC = () => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-transparent flex items-center justify-center text-center p-4">
                     <div className="max-w-4xl animate-in fade-in zoom-in duration-700">
-                        <span className="text-[#C8A46A] uppercase tracking-[0.3em] font-bold text-xs md:text-sm mb-2 block drop-shadow-md">
-                            UpSys Pro Arquitetura
-                        </span>
+                        {empresa?.logo_url ? (
+                            <img
+                                src={empresa.logo_url}
+                                alt={empresa.nome_fantasia || empresa.razao_social}
+                                className="h-16 md:h-24 mx-auto mb-6 object-contain"
+                            />
+                        ) : (
+                            <span className="text-[#C8A46A] uppercase tracking-[0.3em] font-bold text-xs md:text-sm mb-2 block drop-shadow-md">
+                                {empresa?.nome_fantasia || empresa?.razao_social || 'UpSys Pro Arquitetura'}
+                            </span>
+                        )}
                         <h1 className="text-3xl md:text-5xl font-serif font-bold text-white mb-4 drop-shadow-lg">
-                            Briefing de Projeto
+                            {empresa?.titulo_briefing || 'Briefing de Projeto'}
                         </h1>
-                        <p className="text-white/90 text-sm md:text-base max-w-xl mx-auto font-light leading-relaxed hidden sm:block">
-                            Transformando sonhos em espaços vividos. Preencha o briefing abaixo para iniciarmos a jornada de criação do seu novo projeto.
+                        <p className="text-white/90 text-sm md:text-base max-w-3xl mx-auto font-light leading-relaxed hidden sm:block whitespace-pre-line">
+                            {empresa?.texto_briefing || 'Transformando sonhos em espaços vividos. Preencha o briefing abaixo para iniciarmos a jornada de criação do seu novo projeto.'}
                         </p>
                     </div>
                 </div>
             </div>
 
-            <div className="max-w-[900px] mx-auto px-4 -mt-10 md:-mt-20 pb-20 relative z-10">
+            <div className="max-w-[900px] mx-auto px-4 -mt-16 md:-mt-32 pb-20 relative z-10">
                 <div className="bg-white rounded-xl shadow-[0_10px_40px_-15px_rgba(0,0,0,0.1)] border border-[#E6E2DC] overflow-hidden">
                     <div className="h-1.5 bg-[#C8A46A]"></div>
 
@@ -500,7 +547,7 @@ const BriefingPage: React.FC = () => {
                                 )}
                             </button>
                             <p className="text-center text-[#6B6B6B] text-[10px] uppercase tracking-widest mt-6">
-                                UpSys Pro • Excelência em Arquitetura e Engenharia
+                                {empresa?.nome_fantasia || empresa?.razao_social || 'UpSys Pro'}
                             </p>
                         </div>
                     </form>

@@ -237,3 +237,27 @@ export interface BriefingResposta {
   status: BriefingStatus;
   created_at?: string;
 }
+
+export interface Empresa {
+  id?: string;
+  razao_social: string;
+  nome_fantasia?: string;
+  cnpj?: string;
+  inscricao_estadual?: string;
+  email?: string;
+  telefone?: string;
+  cep?: string;
+  logradouro?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
+  logo_url?: string;
+  titulo_briefing?: string;
+  texto_briefing?: string;
+  slug: string;
+  ativo: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
