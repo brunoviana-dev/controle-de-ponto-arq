@@ -19,6 +19,7 @@ const BriefingTemplatePage: React.FC = () => {
         obrigatorio: false,
         ordem: 0,
         ativo: true,
+        instagram: false,
         opcoes: []
     });
 
@@ -34,15 +35,15 @@ const BriefingTemplatePage: React.FC = () => {
             .replace(/^-+|-+$/g, '');
     };
 
-    const fetchData = async () => {
+    const fetchData = async (showLoading = true) => {
         try {
-            setLoading(true);
+            if (showLoading) setLoading(true);
             const data = await briefingPerguntasService.getPerguntas();
             setPerguntas(data);
         } catch (err: any) {
             setError(err.message);
         } finally {
-            setLoading(false);
+            if (showLoading) setLoading(false);
         }
     };
 
@@ -59,6 +60,7 @@ const BriefingTemplatePage: React.FC = () => {
                 obrigatorio: pergunta.obrigatorio,
                 ordem: pergunta.ordem,
                 ativo: pergunta.ativo,
+                instagram: pergunta.instagram,
                 opcoes: (pergunta.opcoes || []) as BriefingOpcao[]
             });
         } else {
@@ -69,6 +71,7 @@ const BriefingTemplatePage: React.FC = () => {
                 obrigatorio: false,
                 ordem: perguntas.length > 0 ? Math.max(...perguntas.map(p => p.ordem)) + 10 : 10,
                 ativo: true,
+                instagram: false,
                 opcoes: []
             });
         }
@@ -156,7 +159,7 @@ const BriefingTemplatePage: React.FC = () => {
                 await briefingPerguntasService.createPergunta(dataToSave);
             }
             setIsModalOpen(false);
-            fetchData();
+            fetchData(false);
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -164,15 +167,69 @@ const BriefingTemplatePage: React.FC = () => {
         }
     };
 
-    const handleDelete = async () => {
-        if (!selectedPergunta) return;
-        setIsProcessing(true);
+    const handleToggleField = async (pergunta: BriefingPergunta, field: 'obrigatorio' | 'ativo' | 'instagram') => {
+        const newValue = !pergunta[field];
+
+        // Optimistic Update
+        setPerguntas(prev => prev.map(p => p.id === pergunta.id ? { ...p, [field]: newValue } : p));
+
         try {
-            await briefingPerguntasService.deletePergunta(selectedPergunta.id);
-            setIsConfirmModalOpen(false);
-            fetchData();
+            await briefingPerguntasService.updatePergunta(pergunta.id, { [field]: newValue });
+            // No need for fetchData if update was successful
         } catch (err: any) {
             setError(err.message);
+            fetchData(); // Rollback to actual data on error
+        }
+    };
+
+    const handleReorder = async (pergunta: BriefingPergunta, direction: 'up' | 'down') => {
+        const currentIndex = perguntas.findIndex(p => p.id === pergunta.id);
+        if (currentIndex === -1) return;
+
+        const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+        if (targetIndex < 0 || targetIndex >= perguntas.length) return;
+
+        const targetPergunta = perguntas[targetIndex];
+
+        // Optimistic Update
+        const newPerguntas = [...perguntas];
+        // Swapping orders locally
+        const tempOrder = pergunta.ordem;
+        newPerguntas[currentIndex] = { ...targetPergunta, ordem: tempOrder };
+        newPerguntas[targetIndex] = { ...pergunta, ordem: targetPergunta.ordem };
+
+        // Sorting locally after swap
+        newPerguntas.sort((a, b) => a.ordem - b.ordem);
+        setPerguntas(newPerguntas);
+
+        try {
+            await Promise.all([
+                briefingPerguntasService.updatePergunta(pergunta.id, { ordem: targetPergunta.ordem }),
+                briefingPerguntasService.updatePergunta(targetPergunta.id, { ordem: pergunta.ordem })
+            ]);
+        } catch (err: any) {
+            setError(err.message);
+            fetchData(); // Rollback on error
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!selectedPergunta) return;
+
+        const idToDelete = selectedPergunta.id;
+
+        // Optimistic Update
+        setPerguntas(prev => prev.filter(p => p.id !== idToDelete));
+        setIsConfirmModalOpen(false);
+        setIsProcessing(true);
+
+        try {
+            await briefingPerguntasService.deletePergunta(idToDelete);
+            // No need for fetchData(true) as we already updated locally
+            fetchData(false);
+        } catch (err: any) {
+            setError(err.message);
+            fetchData(); // Rollback on error
         } finally {
             setIsProcessing(false);
         }
@@ -195,7 +252,7 @@ const BriefingTemplatePage: React.FC = () => {
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">Template de Briefing</h1>
+                    <h1 className="text-2xl font-bold text-white">Perguntas do Briefing</h1>
                     <p className="text-slate-400">Gerencie as perguntas que serão exibidas nos briefings dos projetos</p>
                 </div>
                 <button
@@ -219,15 +276,35 @@ const BriefingTemplatePage: React.FC = () => {
                             <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider w-20 text-center">Ordem</th>
                             <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Pergunta</th>
                             <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Tipo</th>
-                            <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Obrig.</th>
                             <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Status</th>
+                            <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Obrig.</th>
+                            <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Insta</th>
                             <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right w-40">Ações</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-700">
-                        {perguntas.map((p) => (
+                        {perguntas.map((p, idx) => (
                             <tr key={p.id} className="hover:bg-slate-800/30 transition-colors">
-                                <td className="px-6 py-4 text-center font-mono text-slate-400">{p.ordem}</td>
+                                <td className="px-6 py-4">
+                                    <div className="flex flex-col items-center gap-1">
+                                        <button
+                                            onClick={() => handleReorder(p, 'up')}
+                                            disabled={idx === 0}
+                                            className={`p-1 rounded text-slate-500 hover:text-white transition-colors disabled:opacity-20 disabled:cursor-not-allowed`}
+                                            title="Mover para cima"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 15l7-7 7 7" /></svg>
+                                        </button>
+                                        <button
+                                            onClick={() => handleReorder(p, 'down')}
+                                            disabled={idx === perguntas.length - 1}
+                                            className={`p-1 rounded text-slate-500 hover:text-white transition-colors disabled:opacity-20 disabled:cursor-not-allowed`}
+                                            title="Mover para baixo"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+                                        </button>
+                                    </div>
+                                </td>
                                 <td className="px-6 py-4">
                                     <div className="flex flex-col">
                                         <span className="text-white font-medium">{p.pergunta}</span>
@@ -244,19 +321,30 @@ const BriefingTemplatePage: React.FC = () => {
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 text-center">
-                                    {p.obrigatorio ? (
-                                        <span className="text-emerald-400">Sim</span>
-                                    ) : (
-                                        <span className="text-slate-500">Não</span>
-                                    )}
+                                    <input
+                                        type="checkbox"
+                                        checked={p.ativo}
+                                        onChange={() => handleToggleField(p, 'ativo')}
+                                        className="w-4 h-4 accent-blue-500 cursor-pointer"
+                                    />
                                 </td>
                                 <td className="px-6 py-4 text-center">
-                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${p.ativo
-                                        ? 'bg-emerald-500/20 text-emerald-400'
-                                        : 'bg-slate-500/20 text-slate-400'
-                                        }`}>
-                                        {p.ativo ? 'Ativo' : 'Inativo'}
-                                    </span>
+                                    <input
+                                        type="checkbox"
+                                        checked={p.obrigatorio}
+                                        disabled={!p.ativo}
+                                        onChange={() => handleToggleField(p, 'obrigatorio')}
+                                        className="w-4 h-4 accent-emerald-500 cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
+                                    />
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={p.instagram}
+                                        disabled={!p.ativo}
+                                        onChange={() => handleToggleField(p, 'instagram')}
+                                        className="w-4 h-4 accent-pink-500 cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
+                                    />
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                     <div className="flex items-center justify-end gap-2">
@@ -309,7 +397,7 @@ const BriefingTemplatePage: React.FC = () => {
                                     />
                                 </div>
 
-                                <div>
+                                <div className="md:col-span-2">
                                     <label className="block text-sm font-medium text-slate-400 mb-1">Tipo</label>
                                     <select
                                         className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-primary outline-none"
@@ -328,23 +416,15 @@ const BriefingTemplatePage: React.FC = () => {
                                         <option value="arquivo">Arquivo (Upload)</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-400 mb-1">Ordem</label>
-                                    <input
-                                        type="number"
-                                        className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-primary outline-none"
-                                        value={formData.ordem}
-                                        onChange={(e) => setFormData({ ...formData, ordem: parseInt(e.target.value) })}
-                                    />
-                                </div>
                             </div>
 
                             <div className="flex items-center gap-6 py-2">
-                                <label className="flex items-center gap-2 cursor-pointer">
+                                <label className={`flex items-center gap-2 cursor-pointer ${!formData.ativo ? 'opacity-30 cursor-not-allowed' : ''}`}>
                                     <input
                                         type="checkbox"
                                         className="w-4 h-4 accent-primary"
                                         checked={formData.obrigatorio}
+                                        disabled={!formData.ativo}
                                         onChange={(e) => setFormData({ ...formData, obrigatorio: e.target.checked })}
                                     />
                                     <span className="text-sm text-slate-300">Obrigatório</span>
@@ -357,6 +437,16 @@ const BriefingTemplatePage: React.FC = () => {
                                         onChange={(e) => setFormData({ ...formData, ativo: e.target.checked })}
                                     />
                                     <span className="text-sm text-slate-300">Ativo</span>
+                                </label>
+                                <label className={`flex items-center gap-2 cursor-pointer ${!formData.ativo ? 'opacity-30 cursor-not-allowed' : ''}`}>
+                                    <input
+                                        type="checkbox"
+                                        className="w-4 h-4 accent-primary"
+                                        checked={formData.instagram}
+                                        disabled={!formData.ativo}
+                                        onChange={(e) => setFormData({ ...formData, instagram: e.target.checked })}
+                                    />
+                                    <span className="text-sm text-slate-300">Instagram</span>
                                 </label>
                             </div>
 

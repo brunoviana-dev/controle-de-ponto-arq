@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { BriefingAnexo, BriefingOpcao, BriefingPergunta, ProjetoTipo, Empresa } from '../services/interfaces/types';
 import { briefingPerguntasService } from '../services/briefingPerguntasService';
 import { getTiposAtivos } from '../services/projetoTiposService';
@@ -9,6 +9,8 @@ import { getEmpresaBySlug } from '../services/empresaService';
 const BriefingPage: React.FC = () => {
     const { slug } = useParams<{ slug: string }>();
     const navigate = useNavigate();
+    const location = useLocation();
+    const isInstagram = location.pathname.includes('/briefingInsta');
     const [empresa, setEmpresa] = useState<Empresa | null>(null);
     const [perguntas, setPerguntas] = useState<BriefingPergunta[]>([]);
     const [tiposProjeto, setTiposProjeto] = useState<ProjetoTipo[]>([]);
@@ -48,7 +50,10 @@ const BriefingPage: React.FC = () => {
                     setNotFound(true);
                 } else {
                     setEmpresa(empresaData);
-                    setPerguntas(perguntasData.filter(p => p.ativo));
+                    const filtered = isInstagram
+                        ? perguntasData.filter(p => p.ativo && p.instagram)
+                        : perguntasData.filter(p => p.ativo);
+                    setPerguntas(filtered);
                     setTiposProjeto(tiposData);
                 }
             } catch (err: any) {

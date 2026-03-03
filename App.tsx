@@ -56,6 +56,7 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/briefing/:slug" element={<BriefingPage />} />
+          <Route path="/briefingInsta/:slug" element={<BriefingPage />} />
 
           <Route path="/" element={<Navigate to="/ponto" replace />} />
 

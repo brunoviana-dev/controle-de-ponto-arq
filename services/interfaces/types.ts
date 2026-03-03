@@ -213,6 +213,7 @@ export interface BriefingPergunta {
   opcoes?: BriefingOpcao[] | string[]; // Suporta legidaco e novo formato
   ordem: number;
   ativo: boolean;
+  instagram: boolean;
   created_at?: string;
 }
 
