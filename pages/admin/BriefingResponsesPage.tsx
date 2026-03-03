@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { BriefingResposta, BriefingStatus } from '../../services/interfaces/types';
 import { briefingRespostasService } from '../../services/briefingRespostasService';
 import { briefingPerguntasService } from '../../services/briefingPerguntasService';
+import { getTiposAtivos } from '../../services/projetoTiposService';
+import { ProjetoTipo } from '../../services/interfaces/types';
 import ConfirmModal from '../../components/ConfirmModal';
 
 const BriefingResponsesPage: React.FC = () => {
@@ -13,15 +15,18 @@ const BriefingResponsesPage: React.FC = () => {
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [tiposProjeto, setTiposProjeto] = useState<ProjetoTipo[]>([]);
 
     const [activeFilter, setActiveFilter] = useState<BriefingStatus | 'todos'>('todos');
+    const [activeTipoFilter, setActiveTipoFilter] = useState<string | 'todos'>('todos');
 
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [respostasData, perguntasData] = await Promise.all([
+            const [respostasData, perguntasData, tiposData] = await Promise.all([
                 briefingRespostasService.getRespostas(),
-                briefingPerguntasService.getPerguntas()
+                briefingPerguntasService.getPerguntas(),
+                getTiposAtivos()
             ]);
 
             // Map perguntas ID to text
@@ -32,6 +37,7 @@ const BriefingResponsesPage: React.FC = () => {
 
             setRespostas(respostasData);
             setPerguntas(perguntasMap);
+            setTiposProjeto(tiposData);
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -43,9 +49,11 @@ const BriefingResponsesPage: React.FC = () => {
         fetchData();
     }, []);
 
-    const filteredRespostas = activeFilter === 'todos'
-        ? respostas
-        : respostas.filter(r => r.status === activeFilter);
+    const filteredRespostas = respostas.filter(r => {
+        const matchesStatus = activeFilter === 'todos' || r.status === activeFilter;
+        const matchesTipo = activeTipoFilter === 'todos' || r.tipo_projeto_id === activeTipoFilter;
+        return matchesStatus && matchesTipo;
+    });
 
     const counts = {
         todos: respostas.length,
@@ -118,31 +126,62 @@ const BriefingResponsesPage: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold">Respostas do Briefing</h1>
-                    <p className="text-slate-400">Gerencie os contatos e propostas recebidas pelo formulário público.</p>
+            <div className="flex flex-col gap-4">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold">Respostas do Briefing</h1>
+                        <p className="text-slate-400">Gerencie os contatos e propostas recebidas pelo formulário público.</p>
+                    </div>
+
+                    <div className="flex p-1 bg-slate-800/50 rounded-xl border border-slate-700/50 self-start">
+                        {(['todos', 'novo', 'em_contato', 'convertido', 'descartado'] as const).map((filter) => (
+                            <button
+                                key={filter}
+                                onClick={() => setActiveFilter(filter)}
+                                className={`px-4 py-2 text-xs font-bold rounded-lg transition-all capitalize flex items-center gap-2
+                                    ${activeFilter === filter
+                                        ? 'bg-slate-700 text-white shadow-lg'
+                                        : 'text-slate-400 hover:text-white hover:bg-slate-700/30'}
+                                `}
+                            >
+                                {filter.replace('_', ' ')}
+                                <span className={`px-1.5 py-0.5 rounded-md text-[10px] 
+                                    ${activeFilter === filter ? 'bg-primary/20 text-primary' : 'bg-slate-700 text-slate-400'}
+                                `}>
+                                    {counts[filter]}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
-                <div className="flex p-1 bg-slate-800/50 rounded-xl border border-slate-700/50 self-start">
-                    {(['todos', 'novo', 'em_contato', 'convertido', 'descartado'] as const).map((filter) => (
+                <div className="flex items-center gap-2 bg-slate-800/50 p-2 rounded-xl border border-slate-700/50 self-start">
+                    <span className="text-xs font-bold text-slate-500 px-2 uppercase tracking-wider">Filtrar por Projeto:</span>
+                    <div className="flex flex-wrap gap-2">
                         <button
-                            key={filter}
-                            onClick={() => setActiveFilter(filter)}
-                            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all capitalize flex items-center gap-2
-                                ${activeFilter === filter
-                                    ? 'bg-slate-700 text-white shadow-lg'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-700/30'}
+                            onClick={() => setActiveTipoFilter('todos')}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all
+                                ${activeTipoFilter === 'todos'
+                                    ? 'bg-primary text-white'
+                                    : 'bg-slate-700/50 text-slate-400 hover:text-white'}
                             `}
                         >
-                            {filter.replace('_', ' ')}
-                            <span className={`px-1.5 py-0.5 rounded-md text-[10px] 
-                                ${activeFilter === filter ? 'bg-primary/20 text-primary' : 'bg-slate-700 text-slate-400'}
-                            `}>
-                                {counts[filter]}
-                            </span>
+                            Todos
                         </button>
-                    ))}
+                        {tiposProjeto.map(t => (
+                            <button
+                                key={t.id}
+                                onClick={() => setActiveTipoFilter(t.id)}
+                                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all
+                                    ${activeTipoFilter === t.id
+                                        ? 'bg-primary text-white'
+                                        : 'bg-slate-700/50 text-slate-400 hover:text-white'}
+                                `}
+                            >
+                                {t.nome}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -157,11 +196,12 @@ const BriefingResponsesPage: React.FC = () => {
                     <table className="w-full text-left">
                         <thead className="bg-slate-800/50 border-b border-slate-700 text-slate-400 uppercase text-xs font-bold">
                             <tr>
-                                <th className="px-6 py-4">Data</th>
-                                <th className="px-6 py-4">Cliente</th>
-                                <th className="px-6 py-4">Contato</th>
-                                <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4 text-right">Ações</th>
+                                <th className="px-6 py-4 text-xs">Data</th>
+                                <th className="px-6 py-4 text-xs">Cliente</th>
+                                <th className="px-6 py-4 text-xs">Tipo de Projeto</th>
+                                <th className="px-6 py-4 text-xs font-medium">Contato</th>
+                                <th className="px-6 py-4 text-xs">Status</th>
+                                <th className="px-6 py-4 text-right text-xs">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-700/50">
@@ -180,6 +220,11 @@ const BriefingResponsesPage: React.FC = () => {
                                         <td className="px-6 py-4">
                                             <div className="font-semibold text-white">{r.nome}</div>
                                             <div className="text-xs text-slate-500">{r.email}</div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="px-2 py-1 bg-slate-800 text-slate-300 text-[10px] font-bold rounded uppercase border border-slate-700">
+                                                {(r as any).projeto_tipos?.nome || 'N/A'}
+                                            </span>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-slate-400">
                                             {r.telefone || '-'}
@@ -208,10 +253,10 @@ const BriefingResponsesPage: React.FC = () => {
                                                     setSelectedResposta(r);
                                                     setIsDetailModalOpen(true);
                                                 }}
-                                                className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-all"
-                                                title="Ver Detalhes"
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-all border border-blue-500/20 text-xs font-bold"
                                             >
-                                                👁️
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
+                                                Ver
                                             </button>
                                         </td>
                                     </tr>
