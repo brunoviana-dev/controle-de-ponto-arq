@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS public.briefing_respostas (
     telefone TEXT,
     tipo_projeto_id UUID REFERENCES public.projeto_tipos(id),
     respostas JSONB NOT NULL,
+    anexos JSONB DEFAULT '[]'::jsonb,
     status TEXT DEFAULT 'novo' CHECK (status IN ('novo', 'em_contato', 'convertido', 'descartado')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );

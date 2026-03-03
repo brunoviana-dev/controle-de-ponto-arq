@@ -18,6 +18,7 @@ import TipoProjetoFormPage from './pages/admin/TipoProjetoFormPage';
 import ContasPagarPage from './pages/financeiro/ContasPagarPage';
 import ContaFormPage from './pages/financeiro/ContaFormPage';
 import BriefingTemplatePage from './pages/admin/BriefingTemplatePage';
+import BriefingResponsesPage from './pages/admin/BriefingResponsesPage';
 import BriefingPage from './pages/BriefingPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
@@ -75,8 +76,9 @@ const App: React.FC = () => {
               <Route path=":id/editar" element={<TipoProjetoFormPage />} />
             </Route>
 
-            {/* Comercial Routes */}
+            {/* Briefing Routes */}
             <Route path="briefing-template" element={<BriefingTemplatePage />} />
+            <Route path="briefing-respostas" element={<BriefingResponsesPage />} />
 
             {/* Financeiro Routes */}
             <Route path="financeiro">

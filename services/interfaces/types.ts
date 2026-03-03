@@ -197,20 +197,34 @@ export interface ContaPagarPagamento {
   created_at?: string;
 }
 
-export type PerguntaTipo = 'texto' | 'textarea' | 'numero' | 'email' | 'telefone' | 'select' | 'radio' | 'checkbox' | 'data';
+export type PerguntaTipo = 'texto' | 'textarea' | 'numero' | 'email' | 'telefone' | 'select' | 'radio' | 'checkbox' | 'data' | 'arquivo';
+
+export interface BriefingOpcao {
+  label: string;
+  value: string;
+  image_url: string | null;
+}
 
 export interface BriefingPergunta {
   id: string;
   pergunta: string;
   tipo: PerguntaTipo;
   obrigatorio: boolean;
-  opcoes?: string[]; // Salvo como JSONB no banco, mas tratado como string[] no front
+  opcoes?: BriefingOpcao[] | string[]; // Suporta legidaco e novo formato
   ordem: number;
   ativo: boolean;
   created_at?: string;
 }
 
 export type BriefingStatus = 'novo' | 'em_contato' | 'convertido' | 'descartado';
+
+export interface BriefingAnexo {
+  pergunta_id: string;
+  nome: string;
+  url: string;
+  tipo: string;
+  tamanho: number;
+}
 
 export interface BriefingResposta {
   id: string;
@@ -219,6 +233,7 @@ export interface BriefingResposta {
   telefone?: string;
   tipo_projeto_id?: string;
   respostas: Record<string, any>;
+  anexos?: BriefingAnexo[];
   status: BriefingStatus;
   created_at?: string;
 }

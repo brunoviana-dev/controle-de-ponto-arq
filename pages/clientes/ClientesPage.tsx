@@ -118,13 +118,14 @@ const ClientesPage: React.FC = () => {
                                 <th className="px-6 py-3">Contato</th>
                                 <th className="px-6 py-3">Origem</th>
                                 <th className="px-6 py-3">Status</th>
+                                <th className="px-6 py-3 text-center">Login</th>
                                 <th className="px-6 py-3 text-right">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-700">
                             {filteredClientes.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                                    <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
                                         Nenhum cliente encontrado.
                                     </td>
                                 </tr>
@@ -154,6 +155,22 @@ const ClientesPage: React.FC = () => {
                                                 {cliente.ativo ? 'Ativo' : 'Inativo'}
                                             </span>
                                         </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <button
+                                                onClick={() => setSelectedCliente(cliente)}
+                                                className={`transition-colors p-1.5 rounded-full hover:bg-slate-700 ${cliente.authUserId ? 'text-green-500' : 'text-slate-500 hover:text-white'}`}
+                                                title={cliente.authUserId ? "Gerenciar Login" : "Criar Login"}
+                                            >
+                                                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M2 21a8 8 0 0 1 13.292-6" />
+                                                    <circle cx="10" cy="8" r="5" />
+                                                    <path d="m21 8.5 1.5 1.5" />
+                                                    <path d="M19 10.5 20.5 12" />
+                                                    <path d="m17 12.5 1.5 1.5" />
+                                                    <path d="m15.5 14 3-3 3.5 3.5-3 3-3.5-3.5Z" />
+                                                </svg>
+                                            </button>
+                                        </td>
                                         <td className="px-6 py-4 text-right space-x-2">
                                             <button
                                                 onClick={() => handleToggleAtivo(cliente.id, cliente.ativo)}
@@ -170,24 +187,6 @@ const ClientesPage: React.FC = () => {
                                             >
                                                 Ver
                                             </Link>
-                                            <button
-                                                onClick={() => setSelectedCliente(cliente)}
-                                                className="inline-flex items-center space-x-1.5 text-xs px-2 py-1 rounded border border-green-500/30 text-green-400 hover:bg-green-500/10 transition-colors"
-                                                title={cliente.authUserId ? "Gerenciar Login" : "Criar Login"}
-                                            >
-                                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                                                    <circle cx="9" cy="7" r="4" />
-                                                    <path d="M9 12c-4 0-7 2-7 5v1h11c-.3-.6-.5-1.3-.5-2 0-2 1.5-3.5 3.5-3.5.3 0 .6 0 .9.1-.3-.2-.6-.4-.9-.6z" />
-                                                    <path d="M19 11c-1.1 0-2 .9-2 2v2h4v-2c0-1.1-.9-2-2-2z" />
-                                                    <rect x="16.5" y="14" width="5" height="4" rx="0.5" />
-                                                    <rect x="2" y="19.5" width="20" height="2.5" rx="1" />
-                                                    <circle cx="6" cy="20.75" r="0.6" fill="white" />
-                                                    <circle cx="10" cy="20.75" r="0.6" fill="white" />
-                                                    <circle cx="14" cy="20.75" r="0.6" fill="white" />
-                                                    <circle cx="18" cy="20.75" r="0.6" fill="white" />
-                                                </svg>
-                                                <span>Login</span>
-                                            </button>
                                             <Link
                                                 to={`/clientes/${cliente.id}/editar`}
                                                 className="inline-block text-xs px-2 py-1 rounded border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors"
