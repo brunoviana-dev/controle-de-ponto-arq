@@ -19,9 +19,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     React.useEffect(() => {
         // Escutar mudanças de autenticação do Supabase (para clientes)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            // Se há um admin/colaborador logado via localStorage, não interferir
+            const adminSession = localStorage.getItem('app_session');
+            if (adminSession) return;
+
             if (session?.user) {
-                // Se temos uma sessão do Supabase, verificar se é um cliente
-                // (Opcionalmente podemos buscar os dados do cliente aqui)
+                // Se temos uma sessão do Supabase e não há admin logado, é um cliente
                 const clientUser: User = {
                     id: session.user.id,
                     name: session.user.user_metadata?.full_name || session.user.email || 'Cliente',
@@ -32,11 +35,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setUser(clientUser);
                 localStorage.setItem('app_session_client', JSON.stringify(clientUser));
             } else if (event === 'SIGNED_OUT') {
-                // Apenas limpar se não houver um colaborador logado
-                if (!localStorage.getItem('app_session')) {
-                    setUser(null);
-                }
                 localStorage.removeItem('app_session_client');
+                setUser(null);
             }
         });
 

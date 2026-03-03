@@ -17,6 +17,8 @@ import TiposProjetoPage from './pages/admin/TiposProjetoPage';
 import TipoProjetoFormPage from './pages/admin/TipoProjetoFormPage';
 import ContasPagarPage from './pages/financeiro/ContasPagarPage';
 import ContaFormPage from './pages/financeiro/ContaFormPage';
+import BriefingTemplatePage from './pages/admin/BriefingTemplatePage';
+import BriefingPage from './pages/BriefingPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 // Client Area Pages
@@ -51,6 +53,7 @@ const App: React.FC = () => {
       <HashRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/briefing" element={<BriefingPage />} />
 
           <Route path="/" element={<Navigate to="/ponto" replace />} />
 
@@ -71,6 +74,9 @@ const App: React.FC = () => {
               <Route path="novo" element={<TipoProjetoFormPage />} />
               <Route path=":id/editar" element={<TipoProjetoFormPage />} />
             </Route>
+
+            {/* Comercial Routes */}
+            <Route path="briefing-template" element={<BriefingTemplatePage />} />
 
             {/* Financeiro Routes */}
             <Route path="financeiro">

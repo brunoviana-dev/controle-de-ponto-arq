@@ -95,6 +95,7 @@ export interface Cliente {
   endereco?: string;
   observacoes?: string;
   ativo: boolean;
+  origem?: string;
   auth_user_id?: string;
   createdAt: string;
   updatedAt?: string;
@@ -193,5 +194,31 @@ export interface ContaPagarPagamento {
   valor_pago: number;
   mes_referencia: number;
   ano_referencia: number;
+  created_at?: string;
+}
+
+export type PerguntaTipo = 'texto' | 'textarea' | 'numero' | 'email' | 'telefone' | 'select' | 'radio' | 'checkbox' | 'data';
+
+export interface BriefingPergunta {
+  id: string;
+  pergunta: string;
+  tipo: PerguntaTipo;
+  obrigatorio: boolean;
+  opcoes?: string[]; // Salvo como JSONB no banco, mas tratado como string[] no front
+  ordem: number;
+  ativo: boolean;
+  created_at?: string;
+}
+
+export type BriefingStatus = 'novo' | 'em_contato' | 'convertido' | 'descartado';
+
+export interface BriefingResposta {
+  id: string;
+  nome: string;
+  email: string;
+  telefone?: string;
+  tipo_projeto_id?: string;
+  respostas: Record<string, any>;
+  status: BriefingStatus;
   created_at?: string;
 }

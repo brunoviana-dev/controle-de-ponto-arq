@@ -34,6 +34,8 @@ export const getClientes = async (): Promise<Cliente[]> => {
         endereco: c.endereco,
         observacoes: c.observacoes,
         ativo: c.ativo,
+        origem: c.origem,
+        authUserId: c.auth_user_id,
         createdAt: c.created_at,
         updatedAt: c.updated_at
     }));
@@ -65,6 +67,7 @@ export const getClienteById = async (id: string): Promise<Cliente | undefined> =
         endereco: data.endereco,
         observacoes: data.observacoes,
         ativo: data.ativo,
+        origem: data.origem,
         createdAt: data.created_at,
         updatedAt: data.updated_at
     };
@@ -86,7 +89,8 @@ export const createCliente = async (cliente: Omit<Cliente, 'id' | 'createdAt' | 
             data_nascimento: cliente.dataNascimento,
             endereco: cliente.endereco,
             observacoes: cliente.observacoes,
-            ativo: cliente.ativo !== undefined ? cliente.ativo : true
+            ativo: cliente.ativo !== undefined ? cliente.ativo : true,
+            origem: cliente.origem || 'direto'
         })
         .select()
         .single();
@@ -105,6 +109,7 @@ export const createCliente = async (cliente: Omit<Cliente, 'id' | 'createdAt' | 
         endereco: data.endereco,
         observacoes: data.observacoes,
         ativo: data.ativo,
+        origem: data.origem,
         createdAt: data.created_at,
         updatedAt: data.updated_at
     };
@@ -150,4 +155,25 @@ export const toggleClienteAtivo = async (id: string, ativo: boolean): Promise<vo
     if (error) {
         throw new Error(`Erro ao alterar status do cliente: ${error.message}`);
     }
+};
+
+/**
+ * Cria um login (Supabase Auth) para um cliente e vincula ao registro.
+ * Usa uma Edge Function com service_role para não afetar a sessão do admin atual.
+ */
+export const vincularAuthAoCliente = async (clienteId: string, email: string, password: string): Promise<string> => {
+    ensureAdmin();
+
+    // Chama a Edge Function server-side que usa admin.createUser()
+    // Isso evita que o signUp() do frontend crie uma sessão do cliente,
+    // o que causaria redirect indesejado ao sobrescrever a sessão do admin.
+    const { data, error } = await supabase.functions.invoke('create-client-auth', {
+        body: { email, password, clienteId }
+    });
+
+    if (error) throw new Error(error.message || 'Erro ao criar login do cliente');
+    if (data?.error) throw new Error(data.error);
+    if (!data?.authUserId) throw new Error('Erro ao criar usuário de autenticação');
+
+    return data.authUserId;
 };

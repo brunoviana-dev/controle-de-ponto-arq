@@ -72,6 +72,11 @@ const DashboardLayout: React.FC = () => {
               <NavLink to="/admin/recebimentos" className={navClass}>
                 <span>💰</span> <span>Relatório de Recebimento</span>
               </NavLink>
+
+              <div className="text-xs font-semibold text-slate-500 uppercase px-3 pt-4 pb-2">Comercial</div>
+              <NavLink to="/admin/briefing-template" className={navClass}>
+                <span>📝</span> <span>Template de Briefing</span>
+              </NavLink>
             </>
           )}
 
