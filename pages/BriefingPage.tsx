@@ -222,32 +222,32 @@ const BriefingPage: React.FC = () => {
     return (
         <div className="min-h-screen bg-[#F5F4F1] text-[#2E2E2E] font-sans">
             {/* Header Institucional / Hero */}
-            <div className="relative h-[320px] md:h-[550px] w-full overflow-hidden bg-[#0A0A0A]">
+            <div className="relative min-h-[380px] md:min-h-[550px] w-full overflow-hidden bg-[#0A0A0A] flex items-center justify-center">
                 <img
                     src="/hero-briefing.png"
                     alt="Projeto Arquitetônico"
-                    className="w-full h-full object-cover opacity-30 grayscale brightness-75 contrast-125"
+                    className="absolute inset-0 w-full h-full object-cover opacity-30 grayscale brightness-75 contrast-125"
                 />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-transparent flex items-center justify-center text-center p-4">
-                    <div className="max-w-4xl animate-in fade-in zoom-in duration-700">
-                        {empresa?.logo_url ? (
-                            <img
-                                src={empresa.logo_url}
-                                alt={empresa.nome_fantasia || empresa.razao_social}
-                                className="h-16 md:h-24 mx-auto mb-6 object-contain"
-                            />
-                        ) : (
-                            <span className="text-[#C8A46A] uppercase tracking-[0.3em] font-bold text-xs md:text-sm mb-2 block drop-shadow-md">
-                                {empresa?.nome_fantasia || empresa?.razao_social || 'UpSys Pro Arquitetura'}
-                            </span>
-                        )}
-                        <h1 className="text-3xl md:text-5xl font-serif font-bold text-white mb-4 drop-shadow-lg">
-                            {empresa?.titulo_briefing || 'Briefing de Projeto'}
-                        </h1>
-                        <p className="text-white/90 text-sm md:text-base max-w-3xl mx-auto font-light leading-relaxed px-4 sm:px-0 whitespace-pre-line">
-                            {empresa?.texto_briefing || 'Transformando sonhos em espaços vividos. Preencha o briefing abaixo para iniciarmos a jornada de criação do seu novo projeto.'}
-                        </p>
-                    </div>
+                <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-transparent"></div>
+
+                <div className="relative z-10 max-w-4xl mx-auto text-center px-4 py-20 md:py-32 animate-in fade-in zoom-in duration-700">
+                    {empresa?.logo_url ? (
+                        <img
+                            src={empresa.logo_url}
+                            alt={empresa.nome_fantasia || empresa.razao_social}
+                            className="h-16 md:h-24 mx-auto mb-6 object-contain"
+                        />
+                    ) : (
+                        <span className="text-[#C8A46A] uppercase tracking-[0.3em] font-bold text-xs md:text-sm mb-2 block drop-shadow-md">
+                            {empresa?.nome_fantasia || empresa?.razao_social || 'UpSys Pro Arquitetura'}
+                        </span>
+                    )}
+                    <h1 className="text-3xl md:text-5xl font-serif font-bold text-white mb-4 drop-shadow-lg">
+                        {empresa?.titulo_briefing || 'Briefing de Projeto'}
+                    </h1>
+                    <p className="text-white/90 text-sm md:text-base max-w-3xl mx-auto font-light leading-relaxed px-4 sm:px-0 whitespace-pre-line">
+                        {empresa?.texto_briefing || 'Transformando sonhos em espaços vividos. Preencha o briefing abaixo para iniciarmos a jornada de criação do seu novo projeto.'}
+                    </p>
                 </div>
             </div>
 
