@@ -21,7 +21,7 @@ const DashboardLayout: React.FC = () => {
     }`;
 
   return (
-    <div className="min-h-screen bg-background text-slate-100 flex flex-col md:flex-row">
+    <div className="h-screen bg-background text-slate-100 flex flex-col md:flex-row overflow-hidden">
 
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 bg-surface border-b border-slate-700">
