@@ -11,7 +11,7 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { refreshUser } = useAuth();
+  const { refreshUser, signOut } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,6 +19,9 @@ const Login: React.FC = () => {
     setError('');
 
     try {
+      // Garantir que não há sessão antiga travada
+      await signOut();
+
       const user = await login(username, password);
       refreshUser();
 

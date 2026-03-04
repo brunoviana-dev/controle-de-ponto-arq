@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginCliente } from '../../services/clienteAuthService';
+import { useAuth } from '../../contexts/AuthContext';
 
 const ClienteLoginPage: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -9,6 +10,7 @@ const ClienteLoginPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
+    const { refreshUser, signOut } = useAuth();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -16,7 +18,11 @@ const ClienteLoginPage: React.FC = () => {
         setError(null);
 
         try {
+            // Garantir que não há sessão antiga travada
+            await signOut();
+
             await loginCliente(email, password);
+            refreshUser();
             navigate('/area-cliente');
         } catch (err: any) {
             setError(err.message || 'Erro ao realizar login');

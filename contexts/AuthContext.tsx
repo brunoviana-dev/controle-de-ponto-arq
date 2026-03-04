@@ -24,28 +24,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     React.useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (session?.user) {
-                // Se já temos um user de admin no localStorage vindo do login explícito, 
-                // priorize ele (para manter compatibilidade com o login de admin)
+            if (event === 'SIGNED_OUT') {
+                localStorage.removeItem('app_session');
+                localStorage.removeItem('app_session_client');
+                setUser(null);
+                return;
+            }
+
+            if (session?.user && !user) {
+                // Se temos uma sessão mas não temos o user no state (ex: F5 ou abertura de aba)
+                // Primeiro tentamos o localStorage
                 const adminSessionStr = localStorage.getItem('app_session');
+                const clientSessionStr = localStorage.getItem('app_session_client');
+
                 if (adminSessionStr) {
                     const adminUser = JSON.parse(adminSessionStr);
-                    if (adminUser.userId === session.user.id) {
+                    if (adminUser.userId === session.user.id || adminUser.id === session.user.id) {
                         setUser(adminUser);
                         return;
                     }
                 }
+                if (clientSessionStr) {
+                    const clientUser = JSON.parse(clientSessionStr);
+                    if (clientUser.id === session.user.id) {
+                        setUser(clientUser);
+                        return;
+                    }
+                }
 
-                // Senão, buscar no banco para ver quem é esse usuário (Colaborador ou Cliente)
+                // Se não está no localStorage, aí sim buscamos no banco (recuperação de sessão)
                 try {
-                    // 1. Tentar Colaborador
-                    const { data: colab, error: errColab } = await supabase
+                    // Tentar Colaborador
+                    const { data: colab } = await supabase
                         .from('colaboradores')
                         .select('*')
                         .eq('user_id', session.user.id)
-                        .single();
+                        .maybeSingle();
 
-                    if (colab && !errColab) {
+                    if (colab) {
                         const staffUser: User = {
                             id: colab.id,
                             name: colab.nome,
@@ -56,18 +72,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         };
                         setUser(staffUser);
                         localStorage.setItem('app_session', JSON.stringify(staffUser));
-                        localStorage.removeItem('app_session_client');
                         return;
                     }
 
-                    // 2. Tentar Cliente
-                    const { data: cliente, error: errCliente } = await supabase
+                    // Tentar Cliente
+                    const { data: cliente } = await supabase
                         .from('clientes')
                         .select('*')
                         .eq('auth_user_id', session.user.id)
-                        .single();
+                        .maybeSingle();
 
-                    if (cliente && !errCliente) {
+                    if (cliente) {
                         const clientUser: User = {
                             id: session.user.id,
                             name: cliente.nome || session.user.email || 'Cliente',
@@ -77,16 +92,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         };
                         setUser(clientUser);
                         localStorage.setItem('app_session_client', JSON.stringify(clientUser));
-                        localStorage.removeItem('app_session');
                         return;
                     }
                 } catch (e) {
-                    console.error('Error resolving user profile:', e);
+                    console.error('Erro ao recuperar perfil:', e);
                 }
-            } else if (event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
-                localStorage.removeItem('app_session');
-                localStorage.removeItem('app_session_client');
-                setUser(null);
             }
         });
 

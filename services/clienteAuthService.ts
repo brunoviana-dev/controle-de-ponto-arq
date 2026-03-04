@@ -18,21 +18,15 @@ export const loginCliente = async (email: string, pass: string) => {
     }
 
     // Verificar se existe perfil de cliente vinculado a este auth_user_id
-    const { data: cliente, error: clientError } = await supabase
+    const { data: cliente } = await supabase
         .from('clientes')
         .select('id')
         .eq('auth_user_id', data.user.id)
-        .single();
+        .maybeSingle();
 
-    if (clientError || !cliente) {
-        const isNotFoundError = clientError?.code === 'PGRST116' ||
-            clientError?.message?.includes('single JSON object');
-
-        if (isNotFoundError || !cliente) {
-            await supabase.auth.signOut();
-            throw new Error('Cliente não Encontrado');
-        }
-        throw new Error('Erro ao verificar perfil do cliente: ' + (clientError?.message || 'Erro desconhecido'));
+    if (!cliente) {
+        await supabase.auth.signOut();
+        throw new Error('Cliente não Encontrado');
     }
 
     return data.user;
