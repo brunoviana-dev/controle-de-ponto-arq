@@ -19,6 +19,26 @@ export const login = async (email: string, password: string): Promise<User> => {
         throw new Error('Erro ao obter dados do usuário');
     }
 
+    // Verificar se existe perfil de cliente vinculado a este auth_user_id
+    const { data: cliente, error: clientError } = await supabase
+        .from('clientes')
+        .select('id')
+        .eq('auth_user_id', authData.user.id) // Corrected from 'data.user.id' to 'authData.user.id'
+        .single();
+
+    if (cliente) { // If a client profile is found, this user is not a collaborator
+        await supabase.auth.signOut(); // Log out the user as they are not a collaborator for this login flow
+        throw new Error('Este usuário é um cliente e não pode acessar esta área.');
+    }
+
+    // If clientError indicates no row found, it's expected, proceed to check collaborators
+    const isNotFoundError = clientError?.code === 'PGRST116' ||
+        clientError?.message?.includes('single JSON object');
+
+    if (clientError && !isNotFoundError) { // If there's an actual error other than "not found"
+        throw new Error('Erro ao verificar perfil do cliente: ' + (clientError?.message || 'Erro desconhecido'));
+    }
+
     // 2. Buscar dados complementares na tabela colaboradores pelo user_id
     // Adicionamos um timeout para evitar travamentos em caso de problemas de rede/banco
     const colabPromise = supabase
@@ -33,15 +53,17 @@ export const login = async (email: string, password: string): Promise<User> => {
 
     const { data: colaborador, error: colabError } = await Promise.race([colabPromise, timeoutPromise]) as any;
 
-    if (colabError) {
-        if (colabError.code === 'PGRST116') {
+    if (colabError || !colaborador) {
+        // Se der erro de "single row" ou não vier dado, provavelmente não é colaborador
+        const isNotFoundError = colabError?.code === 'PGRST116' ||
+            colabError?.message?.includes('single JSON object');
+
+        if (isNotFoundError || !colaborador) {
+            // Antes de jogar erro, vamos deslogar do Auth se for login forçado por aqui
+            // Mas o Login.tsx trata isso. O Importante é a mensagem.
             throw new Error('Colaborador não Encontrado');
         }
-        throw new Error('Erro ao buscar perfil do colaborador: ' + colabError.message);
-    }
-
-    if (!colaborador) {
-        throw new Error('Colaborador não Encontrado');
+        throw new Error('Erro ao buscar perfil do colaborador: ' + (colabError?.message || 'Erro desconhecido'));
     }
 
     // Determinar role baseado no campo perfil

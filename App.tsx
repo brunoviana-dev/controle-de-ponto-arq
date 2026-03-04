@@ -47,7 +47,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: UserR
 
   // Se o usuário for admin/colaborador e tentar acessar a área do cliente
   if (user.role !== UserRole.CLIENTE && location.pathname.includes('area-cliente')) {
-    return <Navigate to="/dashboard" replace />;
+    // Redireciona para o destino padrão de colaboradores (pode ser /ponto ou pagina de admin)
+    return <Navigate to="/ponto" replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {

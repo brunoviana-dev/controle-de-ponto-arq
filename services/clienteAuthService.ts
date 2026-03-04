@@ -25,9 +25,14 @@ export const loginCliente = async (email: string, pass: string) => {
         .single();
 
     if (clientError || !cliente) {
-        // Se não for cliente, desloga imediatamente do Auth para não deixar sessão órfã
-        await supabase.auth.signOut();
-        throw new Error('Cliente não Encontrado');
+        const isNotFoundError = clientError?.code === 'PGRST116' ||
+            clientError?.message?.includes('single JSON object');
+
+        if (isNotFoundError || !cliente) {
+            await supabase.auth.signOut();
+            throw new Error('Cliente não Encontrado');
+        }
+        throw new Error('Erro ao verificar perfil do cliente: ' + (clientError?.message || 'Erro desconhecido'));
     }
 
     return data.user;
