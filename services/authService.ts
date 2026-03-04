@@ -34,11 +34,14 @@ export const login = async (email: string, password: string): Promise<User> => {
     const { data: colaborador, error: colabError } = await Promise.race([colabPromise, timeoutPromise]) as any;
 
     if (colabError) {
+        if (colabError.code === 'PGRST116') {
+            throw new Error('Colaborador não Encontrado');
+        }
         throw new Error('Erro ao buscar perfil do colaborador: ' + colabError.message);
     }
 
     if (!colaborador) {
-        throw new Error('Sua conta não possui um perfil de colaborador vinculado.');
+        throw new Error('Colaborador não Encontrado');
     }
 
     // Determinar role baseado no campo perfil

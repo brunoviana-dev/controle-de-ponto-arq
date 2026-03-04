@@ -13,6 +13,23 @@ export const loginCliente = async (email: string, pass: string) => {
         throw new Error(`Erro ao entrar: ${error.message}`);
     }
 
+    if (!data.user) {
+        throw new Error('Erro ao obter dados do usuário');
+    }
+
+    // Verificar se existe perfil de cliente vinculado a este auth_user_id
+    const { data: cliente, error: clientError } = await supabase
+        .from('clientes')
+        .select('id')
+        .eq('auth_user_id', data.user.id)
+        .single();
+
+    if (clientError || !cliente) {
+        // Se não for cliente, desloga imediatamente do Auth para não deixar sessão órfã
+        await supabase.auth.signOut();
+        throw new Error('Cliente não Encontrado');
+    }
+
     return data.user;
 };
 
