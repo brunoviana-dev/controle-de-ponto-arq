@@ -19,18 +19,6 @@ export const login = async (email: string, password: string): Promise<User> => {
         throw new Error('Erro ao obter dados do usuário');
     }
 
-    // Verificar se existe perfil de cliente vinculado a este auth_user_id
-    const { data: cliente } = await supabase
-        .from('clientes')
-        .select('id')
-        .eq('auth_user_id', authData.user.id)
-        .maybeSingle();
-
-    if (cliente) {
-        await supabase.auth.signOut();
-        throw new Error('Colaborador não Encontrado');
-    }
-
     // 2. Buscar dados complementares na tabela colaboradores pelo user_id
     const colabPromise = supabase
         .from('colaboradores')
@@ -45,6 +33,7 @@ export const login = async (email: string, password: string): Promise<User> => {
     const { data: colaborador } = await Promise.race([colabPromise, timeoutPromise]) as any;
 
     if (!colaborador) {
+        await supabase.auth.signOut();
         throw new Error('Colaborador não Encontrado');
     }
 
