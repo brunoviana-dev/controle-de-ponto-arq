@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { FolhaPonto, PontoDia } from './interfaces/types';
+import { getEmpresaAtualId } from '../utils/config';
 
 /**
  * Cria uma folha de ponto vazia para um mês
@@ -33,7 +34,8 @@ const createEmptyMonth = (colaboradorId: string, mes: number, ano: number): Folh
         ano,
         dias,
         updatedAt: new Date().toISOString(),
-        statusPagamento: 'pendente'
+        statusPagamento: 'pendente',
+        empresaId: getEmpresaAtualId()
     };
 };
 
@@ -51,6 +53,7 @@ export const getFolhaPonto = async (
         .eq('colaborador_id', colaboradorId)
         .eq('mes', mes)
         .eq('ano', ano)
+        .eq('empresa_id', getEmpresaAtualId())
         .single();
 
     // Se encontrou, retornar
@@ -67,7 +70,8 @@ export const getFolhaPonto = async (
             valorPagoFinal: data.valor_pago_final,
             snapshotValorHora: data.snapshot_valor_hora,
             snapshotTotalHoras: data.snapshot_total_horas,
-            statusPagamento: data.status_pagamento || 'pendente'
+            statusPagamento: data.status_pagamento || 'pendente',
+            empresaId: data.empresa_id
         };
     }
 
@@ -90,17 +94,27 @@ export const saveFolhaPonto = async (folha: FolhaPonto): Promise<void> => {
         valor_pago_final: folha.valorPagoFinal,
         snapshot_valor_hora: folha.snapshotValorHora,
         snapshot_total_horas: folha.snapshotTotalHoras,
-        status_pagamento: folha.statusPagamento
+        status_pagamento: folha.statusPagamento,
+        empresa_id: folha.empresaId || getEmpresaAtualId()
     };
+
+    // Se a folha já tem um ID que é um UUID válido (não o temporário com underline), 
+    // incluímos no objeto para o upsert usar a PK
+    const isRealUuid = folha.id && folha.id.includes('-') && !folha.id.includes('_');
+
+    const upsertData = isRealUuid
+        ? { id: folha.id, ...folhaData }
+        : folhaData;
 
     // Tentar fazer upsert baseado no constraint unique
     const { error } = await supabase
         .from('folhas_ponto')
-        .upsert(folhaData, {
-            onConflict: 'colaborador_id,mes,ano'
+        .upsert(upsertData, {
+            onConflict: 'empresa_id,colaborador_id,mes,ano'
         });
 
     if (error) {
+        console.error("Erro detalhado ao salvar folha:", error);
         throw new Error(`Erro ao salvar folha de ponto: ${error.message}`);
     }
 };

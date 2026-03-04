@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import { ProjetoTipo, UserRole } from './interfaces/types';
 import { getCurrentUser } from './authService';
+import { getEmpresaAtualId } from '../utils/config';
 
 /**
  * Verifica se o usuário logado é ADMIN
@@ -13,10 +14,12 @@ const isAdmin = () => {
 /**
  * Obtém todos os tipos de projeto
  */
-export const getTipos = async (): Promise<ProjetoTipo[]> => {
+export const getTipos = async (empresaIdOverride?: string): Promise<ProjetoTipo[]> => {
+    const empresaId = empresaIdOverride || getEmpresaAtualId();
     const { data, error } = await supabase
         .from('projeto_tipos')
         .select('*')
+        .eq('empresa_id', empresaId)
         .order('nome', { ascending: true });
 
     if (error) throw new Error(`Erro ao buscar tipos de projeto: ${error.message}`);
@@ -34,11 +37,13 @@ export const getTipos = async (): Promise<ProjetoTipo[]> => {
 /**
  * Obtém apenas tipos ativos
  */
-export const getTiposAtivos = async (): Promise<ProjetoTipo[]> => {
+export const getTiposAtivos = async (empresaIdOverride?: string): Promise<ProjetoTipo[]> => {
+    const empresaId = empresaIdOverride || getEmpresaAtualId();
     const { data, error } = await supabase
         .from('projeto_tipos')
         .select('*')
         .eq('ativo', true)
+        .eq('empresa_id', empresaId)
         .order('nome', { ascending: true });
 
     if (error) throw new Error(`Erro ao buscar tipos de projeto: ${error.message}`);
@@ -65,7 +70,8 @@ export const createTipo = async (nome: string, ativo: boolean = true, contratoTe
         .insert([{
             nome,
             ativo,
-            contrato_template_path: contratoTemplatePath
+            contrato_template_path: contratoTemplatePath,
+            empresa_id: getEmpresaAtualId()
         }])
         .select()
         .single();
@@ -97,6 +103,7 @@ export const updateTipo = async (id: string, updates: Partial<ProjetoTipo>): Pro
         .from('projeto_tipos')
         .update(dataToUpdate)
         .eq('id', id)
+        .eq('empresa_id', getEmpresaAtualId())
         .select()
         .single();
 

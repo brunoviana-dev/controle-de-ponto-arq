@@ -8,6 +8,7 @@ import { getTipos } from './projetoTiposService';
 import { getEtapasByProjeto } from './projetoEtapasService';
 import { getParcelasProjeto } from './projetoParcelasService';
 import { formatCurrency, formatDate } from '../utils/formatters';
+import { getEmpresaAtualId } from '../utils/config';
 
 const ensureAdmin = () => {
     const user = getCurrentUser();
@@ -27,6 +28,7 @@ export const gerarEUploadContrato = async (projetoId: string): Promise<string> =
         .from('projetos')
         .select('*, cliente:clientes(*), tipo:projeto_tipos(*)')
         .eq('id', projetoId)
+        .eq('empresa_id', getEmpresaAtualId())
         .single();
 
     if (projError || !projeto) throw new Error('Projeto não encontrado.');
@@ -112,7 +114,8 @@ export const gerarEUploadContrato = async (projetoId: string): Promise<string> =
         .upsert({
             projeto_id: projetoId,
             arquivo_path: filePath,
-            data_geracao: new Date().toISOString() // Atualizar timestamp ao gerar novo
+            data_geracao: new Date().toISOString(), // Atualizar timestamp ao gerar novo
+            empresa_id: getEmpresaAtualId()
         }, {
             onConflict: 'projeto_id'
         });

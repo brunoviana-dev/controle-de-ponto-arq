@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import { ProjetoEtapa, UserRole } from './interfaces/types';
 import { getCurrentUser } from './authService';
+import { getEmpresaAtualId } from '../utils/config';
 
 const ensureAdmin = () => {
     const user = getCurrentUser();
@@ -22,6 +23,7 @@ export const getEtapasByProjeto = async (projetoId: string): Promise<ProjetoEtap
             colaborador:colaboradores(nome)
         `)
         .eq('projeto_id', projetoId)
+        .eq('empresa_id', getEmpresaAtualId())
         .order('ordem', { ascending: true });
 
     if (error) {
@@ -51,7 +53,8 @@ const syncProjetoStatus = async (projetoId: string): Promise<string> => {
     const { data: etapas, error: errorEtapas } = await supabase
         .from('projeto_etapas')
         .select('status')
-        .eq('projeto_id', projetoId);
+        .eq('projeto_id', projetoId)
+        .eq('empresa_id', getEmpresaAtualId());
 
     if (errorEtapas) throw errorEtapas;
 
@@ -78,7 +81,8 @@ const syncProjetoStatus = async (projetoId: string): Promise<string> => {
     const { error: errorUpdate } = await supabase
         .from('projetos')
         .update({ status: novoStatus })
-        .eq('id', projetoId);
+        .eq('id', projetoId)
+        .eq('empresa_id', getEmpresaAtualId());
 
     if (errorUpdate) throw errorUpdate;
 
@@ -100,7 +104,8 @@ export const createEtapa = async (etapa: Omit<ProjetoEtapa, 'id' | 'createdAt' |
             data_inicio_prevista: etapa.dataInicioPrevista,
             data_fim_prevista: etapa.dataFimPrevista,
             status: etapa.status || 'nao_iniciado',
-            colaborador_id: etapa.colaboradorId
+            colaborador_id: etapa.colaboradorId,
+            empresa_id: getEmpresaAtualId()
         })
         .select(`
             *,
@@ -141,6 +146,7 @@ export const updateEtapa = async (id: string, etapa: Partial<Omit<ProjetoEtapa, 
         .from('projeto_etapas')
         .select('projeto_id')
         .eq('id', id)
+        .eq('empresa_id', getEmpresaAtualId())
         .single();
 
     if (errorFetch) throw errorFetch;
@@ -156,7 +162,8 @@ export const updateEtapa = async (id: string, etapa: Partial<Omit<ProjetoEtapa, 
     const { error } = await supabase
         .from('projeto_etapas')
         .update(updateData)
-        .eq('id', id);
+        .eq('id', id)
+        .eq('empresa_id', getEmpresaAtualId());
 
     if (error) {
         throw new Error(`Erro ao atualizar etapa: ${error.message}`);
@@ -177,6 +184,7 @@ export const deleteEtapa = async (id: string): Promise<string> => {
         .from('projeto_etapas')
         .select('projeto_id')
         .eq('id', id)
+        .eq('empresa_id', getEmpresaAtualId())
         .single();
 
     if (errorFetch) throw errorFetch;
@@ -184,7 +192,8 @@ export const deleteEtapa = async (id: string): Promise<string> => {
     const { error } = await supabase
         .from('projeto_etapas')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('empresa_id', getEmpresaAtualId());
 
     if (error) {
         throw new Error(`Erro ao excluir etapa: ${error.message}`);

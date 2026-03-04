@@ -1,11 +1,13 @@
 import { supabase } from './supabaseClient';
 import { BriefingResposta } from './interfaces/types';
+import { getEmpresaAtualId } from '../utils/config';
 
 export const briefingRespostasService = {
     async getRespostas(): Promise<BriefingResposta[]> {
         const { data, error } = await supabase
             .from('briefing_respostas')
             .select('*, projeto_tipos(nome)')
+            .eq('empresa_id', getEmpresaAtualId())
             .order('created_at', { ascending: false });
 
         if (error) {
@@ -16,13 +18,15 @@ export const briefingRespostasService = {
         return data || [];
     },
 
-    async enviarResposta(resposta: Partial<BriefingResposta>): Promise<void> {
+    async enviarResposta(resposta: Partial<BriefingResposta>, empresaIdOverride?: string): Promise<void> {
+        const empresaId = empresaIdOverride || getEmpresaAtualId();
         // 1. Cadastra ou atualiza o cliente automaticamente a partir do briefing
         try {
             const { data: existingClient } = await supabase
                 .from('clientes')
                 .select('id')
                 .eq('email', resposta.email)
+                .eq('empresa_id', empresaId)
                 .maybeSingle();
 
             if (existingClient) {
@@ -33,7 +37,8 @@ export const briefingRespostasService = {
                         nome: resposta.nome,
                         telefone: resposta.telefone,
                     })
-                    .eq('id', existingClient.id);
+                    .eq('id', existingClient.id)
+                    .eq('empresa_id', empresaId);
             } else {
                 // Se não existe, criamos um novo
                 await supabase
@@ -43,7 +48,8 @@ export const briefingRespostasService = {
                         email: resposta.email,
                         telefone: resposta.telefone,
                         origem: 'briefing',
-                        ativo: true
+                        ativo: true,
+                        empresa_id: empresaId
                     }]);
             }
         } catch (clienteError) {
@@ -53,7 +59,7 @@ export const briefingRespostasService = {
         // 2. Salva a resposta do briefing
         const { error } = await supabase
             .from('briefing_respostas')
-            .insert([resposta]);
+            .insert([{ ...resposta, empresa_id: empresaId }]);
 
         if (error) {
             console.error('Erro ao enviar resposta do briefing:', error);
@@ -62,6 +68,8 @@ export const briefingRespostasService = {
     },
 
     async uploadAnexo(file: File, briefingId: string) {
+        // ... (anexo logic stays the same as it uses storage and returns metadata)
+        // Storage is not directly affected by empresa_id column in tables
         const fileExt = file.name.split('.').pop();
         const uuid = crypto.randomUUID();
         const fileName = `${uuid}.${fileExt}`;
@@ -93,7 +101,8 @@ export const briefingRespostasService = {
         const { error } = await supabase
             .from('briefing_respostas')
             .update({ status })
-            .eq('id', id);
+            .eq('id', id)
+            .eq('empresa_id', getEmpresaAtualId());
 
         if (error) {
             console.error('Erro ao atualizar status da resposta:', error);
@@ -105,7 +114,8 @@ export const briefingRespostasService = {
         const { error } = await supabase
             .from('briefing_respostas')
             .delete()
-            .eq('id', id);
+            .eq('id', id)
+            .eq('empresa_id', getEmpresaAtualId());
 
         if (error) {
             console.error('Erro ao deletar resposta do briefing:', error);

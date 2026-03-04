@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { BriefingPergunta, BriefingOpcao } from './interfaces/types';
+import { getEmpresaAtualId } from '../utils/config';
 
 // Helper para converter string simples em slug
 const slugify = (text: string) => {
@@ -35,10 +36,12 @@ export const normalizarOpcoes = (opcoes: any[] | undefined | null): BriefingOpca
 };
 
 export const briefingPerguntasService = {
-    async getPerguntas(): Promise<BriefingPergunta[]> {
+    async getPerguntas(empresaIdOverride?: string): Promise<BriefingPergunta[]> {
+        const empresaId = empresaIdOverride || getEmpresaAtualId();
         const { data, error } = await supabase
             .from('briefing_perguntas')
             .select('*')
+            .eq('empresa_id', empresaId)
             .order('ordem', { ascending: true });
 
         if (error) {
@@ -56,7 +59,7 @@ export const briefingPerguntasService = {
     async createPergunta(pergunta: Omit<BriefingPergunta, 'id' | 'created_at'>): Promise<BriefingPergunta> {
         const { data, error } = await supabase
             .from('briefing_perguntas')
-            .insert([pergunta])
+            .insert([{ ...pergunta, empresa_id: getEmpresaAtualId() }])
             .select()
             .single();
 
@@ -76,6 +79,7 @@ export const briefingPerguntasService = {
             .from('briefing_perguntas')
             .update(pergunta)
             .eq('id', id)
+            .eq('empresa_id', getEmpresaAtualId())
             .select()
             .single();
 
@@ -94,7 +98,8 @@ export const briefingPerguntasService = {
         const { error } = await supabase
             .from('briefing_perguntas')
             .delete()
-            .eq('id', id);
+            .eq('id', id)
+            .eq('empresa_id', getEmpresaAtualId());
 
         if (error) {
             console.error('Erro ao deletar pergunta do briefing:', error);

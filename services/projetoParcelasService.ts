@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient';
 import { ProjetoParcela, RelatorioRecebimento, UserRole } from './interfaces/types';
 import { getCurrentUser } from './authService';
 import { parseLocalDate } from '../utils/formatters';
+import { getEmpresaAtualId } from '../utils/config';
 
 const ensureAdmin = () => {
     const user = getCurrentUser();
@@ -26,6 +27,7 @@ export const gerarParcelasAutomaticas = async (projetoId: string, valorTotal: nu
         .from('projeto_parcelas')
         .select('*')
         .eq('projeto_id', projetoId)
+        .eq('empresa_id', getEmpresaAtualId())
         .order('numero_parcela', { ascending: true });
 
     if (fetchError) throw new Error(`Erro ao verificar parcelas existentes: ${fetchError.message}`);
@@ -40,6 +42,7 @@ export const gerarParcelasAutomaticas = async (projetoId: string, valorTotal: nu
             .from('projeto_parcelas')
             .delete()
             .eq('projeto_id', projetoId)
+            .eq('empresa_id', getEmpresaAtualId())
             .eq('status', 'pendente');
 
         if (deleteError) throw new Error(`Erro ao ajustar parcelas: ${deleteError.message}`);
@@ -51,6 +54,7 @@ export const gerarParcelasAutomaticas = async (projetoId: string, valorTotal: nu
         .from('projeto_parcelas')
         .delete()
         .eq('projeto_id', projetoId)
+        .eq('empresa_id', getEmpresaAtualId())
         .eq('status', 'pendente');
 
     if (deleteError) throw new Error(`Erro ao limpar parcelas pendentes: ${deleteError.message}`);
@@ -64,6 +68,7 @@ export const gerarParcelasAutomaticas = async (projetoId: string, valorTotal: nu
     const valorUltima = Number((valorRestante - (valorBase * (numNovasParcelas - 1))).toFixed(2));
 
     const novasParcelas = [];
+    const empresaId = getEmpresaAtualId();
     for (let i = 1; i <= numNovasParcelas; i++) {
         const numParcelaTotal = recebidas.length + i;
         let dataVencimento = null;
@@ -79,7 +84,8 @@ export const gerarParcelasAutomaticas = async (projetoId: string, valorTotal: nu
             numero_parcela: numParcelaTotal,
             valor_parcela: i === numNovasParcelas ? valorUltima : valorBase,
             data_vencimento: dataVencimento,
-            status: 'pendente'
+            status: 'pendente',
+            empresa_id: empresaId
         });
     }
 
@@ -104,6 +110,7 @@ export const getRelatorioRecebimento = async (): Promise<RelatorioRecebimento[]>
             cliente:clientes(nome),
             parcelas:projeto_parcelas(status, valor_parcela, data_vencimento)
         `)
+        .eq('empresa_id', getEmpresaAtualId())
         .order('created_at', { ascending: false });
 
     if (error) throw new Error(`Erro ao buscar relatório: ${error.message}`);
@@ -169,6 +176,7 @@ export const getParcelasProjeto = async (projetoId: string): Promise<ProjetoParc
         .from('projeto_parcelas')
         .select('*')
         .eq('projeto_id', projetoId)
+        .eq('empresa_id', getEmpresaAtualId())
         .order('numero_parcela', { ascending: true });
 
     if (error) throw new Error(`Erro ao buscar parcelas do projeto: ${error.message}`);
@@ -201,8 +209,8 @@ export const registrarPagamentoMultiplasParcelas = async (parcelaIds: string[]):
             status: 'recebido',
             data_recebimento: new Date().toISOString().split('T')[0]
         })
-        .in('id', parcelaIds);
+        .in('id', parcelaIds)
+        .eq('empresa_id', getEmpresaAtualId());
 
     if (error) throw new Error(`Erro ao registrar recebimentos: ${error.message}`);
 };
-

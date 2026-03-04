@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import { ProjetoTipoEtapa, UserRole } from './interfaces/types';
 import { getCurrentUser } from './authService';
+import { getEmpresaAtualId } from '../utils/config';
 
 /**
  * Verifica se o usuário logado é ADMIN
@@ -18,6 +19,7 @@ export const getEtapasByTipo = async (projetoTipoId: string): Promise<ProjetoTip
         .from('projeto_tipo_etapas')
         .select('*')
         .eq('projeto_tipo_id', projetoTipoId)
+        .eq('empresa_id', getEmpresaAtualId())
         .order('ordem', { ascending: true });
 
     if (error) throw new Error(`Erro ao buscar etapas padrão: ${error.message}`);
@@ -43,7 +45,8 @@ export const createEtapaPadrao = async (etapa: Omit<ProjetoTipoEtapa, 'id' | 'cr
         .insert([{
             projeto_tipo_id: etapa.projetoTipoId,
             nome_etapa: etapa.nomeEtapa,
-            ordem: etapa.ordem
+            ordem: etapa.ordem,
+            empresa_id: getEmpresaAtualId()
         }])
         .select()
         .single();
@@ -73,7 +76,8 @@ export const updateEtapaPadrao = async (id: string, updates: Partial<ProjetoTipo
     const { error } = await supabase
         .from('projeto_tipo_etapas')
         .update(dataToUpdate)
-        .eq('id', id);
+        .eq('id', id)
+        .eq('empresa_id', getEmpresaAtualId());
 
     if (error) throw new Error(`Erro ao atualizar etapa padrão: ${error.message}`);
 };
@@ -87,7 +91,8 @@ export const deleteEtapaPadrao = async (id: string): Promise<void> => {
     const { error } = await supabase
         .from('projeto_tipo_etapas')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('empresa_id', getEmpresaAtualId());
 
     if (error) throw new Error(`Erro ao excluir etapa padrão: ${error.message}`);
 };
@@ -103,7 +108,8 @@ export const saveEtapasByTipo = async (projetoTipoId: string, etapas: Partial<Pr
     const { data: atuais } = await supabase
         .from('projeto_tipo_etapas')
         .select('id')
-        .eq('projeto_tipo_id', projetoTipoId);
+        .eq('projeto_tipo_id', projetoTipoId)
+        .eq('empresa_id', getEmpresaAtualId());
 
     const idsAtuais = atuais?.map(a => a.id) || [];
     const idsEnviados = etapas.map(e => e.id).filter(id => !!id) as string[];
@@ -111,7 +117,11 @@ export const saveEtapasByTipo = async (projetoTipoId: string, etapas: Partial<Pr
     // 2. Deletar as que foram removidas
     const idsParaDeletar = idsAtuais.filter(id => !idsEnviados.includes(id));
     if (idsParaDeletar.length > 0) {
-        await supabase.from('projeto_tipo_etapas').delete().in('id', idsParaDeletar);
+        await supabase
+            .from('projeto_tipo_etapas')
+            .delete()
+            .in('id', idsParaDeletar)
+            .eq('empresa_id', getEmpresaAtualId());
     }
 
     // 3. Atualizar ou Criar

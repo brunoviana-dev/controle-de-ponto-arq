@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import { Cliente, UserRole } from './interfaces/types';
 import { getCurrentUser } from './authService';
+import { getEmpresaAtualId } from '../utils/config';
 
 const ensureAdmin = () => {
     const user = getCurrentUser();
@@ -18,6 +19,7 @@ export const getClientes = async (): Promise<Cliente[]> => {
     const { data, error } = await supabase
         .from('clientes')
         .select('*')
+        .eq('empresa_id', getEmpresaAtualId())
         .order('nome');
 
     if (error) {
@@ -51,6 +53,7 @@ export const getClienteById = async (id: string): Promise<Cliente | undefined> =
         .from('clientes')
         .select('*')
         .eq('id', id)
+        .eq('empresa_id', getEmpresaAtualId())
         .single();
 
     if (error || !data) {
@@ -90,7 +93,8 @@ export const createCliente = async (cliente: Omit<Cliente, 'id' | 'createdAt' | 
             endereco: cliente.endereco,
             observacoes: cliente.observacoes,
             ativo: cliente.ativo !== undefined ? cliente.ativo : true,
-            origem: cliente.origem || 'direto'
+            origem: cliente.origem || 'direto',
+            empresa_id: getEmpresaAtualId()
         })
         .select()
         .single();
@@ -134,7 +138,8 @@ export const updateCliente = async (id: string, cliente: Partial<Omit<Cliente, '
     const { error } = await supabase
         .from('clientes')
         .update(updateData)
-        .eq('id', id);
+        .eq('id', id)
+        .eq('empresa_id', getEmpresaAtualId());
 
     if (error) {
         throw new Error(`Erro ao atualizar cliente: ${error.message}`);
@@ -150,7 +155,8 @@ export const toggleClienteAtivo = async (id: string, ativo: boolean): Promise<vo
     const { error } = await supabase
         .from('clientes')
         .update({ ativo })
-        .eq('id', id);
+        .eq('id', id)
+        .eq('empresa_id', getEmpresaAtualId());
 
     if (error) {
         throw new Error(`Erro ao alterar status do cliente: ${error.message}`);

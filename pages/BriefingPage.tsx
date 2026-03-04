@@ -40,16 +40,19 @@ const BriefingPage: React.FC = () => {
 
             try {
                 setLoading(true);
-                const [empresaData, perguntasData, tiposData] = await Promise.all([
-                    getEmpresaBySlug(slug),
-                    briefingPerguntasService.getPerguntas(),
-                    getTiposAtivos()
-                ]);
+                const empresaData = await getEmpresaBySlug(slug);
 
                 if (!empresaData) {
                     setNotFound(true);
                 } else {
                     setEmpresa(empresaData);
+
+                    // Fetch data using the company ID from the slug
+                    const [perguntasData, tiposData] = await Promise.all([
+                        briefingPerguntasService.getPerguntas(empresaData.id),
+                        getTiposAtivos(empresaData.id)
+                    ]);
+
                     const filtered = isInstagram
                         ? perguntasData.filter(p => p.ativo && p.instagram)
                         : perguntasData.filter(p => p.ativo);
@@ -158,7 +161,7 @@ const BriefingPage: React.FC = () => {
                 ...fixedData,
                 respostas: dynamicRespostas,
                 anexos: anexos
-            });
+            }, empresa?.id);
             setSubmitted(true);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (err: any) {

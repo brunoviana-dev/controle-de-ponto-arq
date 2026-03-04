@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { Colaborador } from './interfaces/types';
+import { getEmpresaAtualId } from '../utils/config';
 
 /**
  * Retorna todos os colaboradores
@@ -8,6 +9,7 @@ export const getColaboradores = async (): Promise<Colaborador[]> => {
     const { data, error } = await supabase
         .from('colaboradores')
         .select('id, nome, email, telefone, valor_hora, valor_inss_fixo, login, created_at')
+        .eq('empresa_id', getEmpresaAtualId())
         .order('nome');
 
     if (error) {
@@ -35,6 +37,7 @@ export const getColaboradorById = async (id: string): Promise<Colaborador | unde
         .from('colaboradores')
         .select('id, nome, email, telefone, valor_hora, valor_inss_fixo, login, created_at')
         .eq('id', id)
+        .eq('empresa_id', getEmpresaAtualId())
         .single();
 
     if (error || !data) {
@@ -76,7 +79,8 @@ export const saveColaborador = async (colab: Partial<Colaborador>): Promise<void
         const { error } = await supabase
             .from('colaboradores')
             .update(updateData)
-            .eq('id', colab.id);
+            .eq('id', colab.id)
+            .eq('empresa_id', getEmpresaAtualId());
 
         if (error) {
             throw new Error(`Erro ao atualizar colaborador: ${error.message}`);
@@ -92,7 +96,8 @@ export const saveColaborador = async (colab: Partial<Colaborador>): Promise<void
                 valor_hora: colab.valorHora,
                 valor_inss_fixo: colab.valorInssFixo || 0,
                 login: colab.login,
-                senha_hash: colab.senha || 'senha123' // Em produção, usar bcrypt
+                senha_hash: colab.senha || 'senha123', // Em produção, usar bcrypt
+                empresa_id: getEmpresaAtualId()
             });
 
         if (error) {
@@ -108,7 +113,8 @@ export const deleteColaborador = async (id: string): Promise<void> => {
     const { error } = await supabase
         .from('colaboradores')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('empresa_id', getEmpresaAtualId());
 
     if (error) {
         throw new Error(`Erro ao deletar colaborador: ${error.message}`);

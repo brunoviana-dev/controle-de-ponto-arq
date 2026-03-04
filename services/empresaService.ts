@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import { Empresa, UserRole } from './interfaces/types';
 import { getCurrentUser } from './authService';
+import { getEmpresaAtualId } from '../utils/config';
 
 const ensureAdmin = () => {
     const user = getCurrentUser();
@@ -10,15 +11,13 @@ const ensureAdmin = () => {
 };
 
 /**
- * Retorna os dados da única empresa cadastrada
+ * Retorna os dados da empresa atual
  */
 export const getEmpresa = async (): Promise<Empresa | null> => {
-    // Nota: permitimos leitura para briefing publico futuramente sem ensureAdmin, 
-    // mas por enquanto seguindo a regra do admin.
     const { data, error } = await supabase
         .from('empresas')
         .select('*')
-        .limit(1)
+        .eq('id', getEmpresaAtualId())
         .maybeSingle();
 
     if (error) {
@@ -52,28 +51,17 @@ export const getEmpresaBySlug = async (slug: string): Promise<Empresa | null> =>
 export const upsertEmpresa = async (empresa: Omit<Empresa, 'id' | 'created_at' | 'updated_at'>): Promise<Empresa> => {
     ensureAdmin();
 
-    const existing = await getEmpresa();
+    const empresaId = getEmpresaAtualId();
 
-    if (existing?.id) {
-        const { data, error } = await supabase
-            .from('empresas')
-            .update(empresa)
-            .eq('id', existing.id)
-            .select()
-            .single();
+    const { data, error } = await supabase
+        .from('empresas')
+        .update(empresa)
+        .eq('id', empresaId)
+        .select()
+        .single();
 
-        if (error) throw new Error(`Erro ao atualizar empresa: ${error.message}`);
-        return data;
-    } else {
-        const { data, error } = await supabase
-            .from('empresas')
-            .insert(empresa)
-            .select()
-            .single();
-
-        if (error) throw new Error(`Erro ao cadastrar empresa: ${error.message}`);
-        return data;
-    }
+    if (error) throw new Error(`Erro ao atualizar empresa: ${error.message}`);
+    return data;
 };
 
 /**

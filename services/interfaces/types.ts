@@ -59,6 +59,7 @@ export interface FolhaPonto {
   snapshotValorHora?: number;
   snapshotTotalHoras?: number;
   statusPagamento?: 'pendente' | 'pago';
+  empresaId?: string;
 }
 
 export interface ResumoPagamento {

@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient';
 import { Projeto, UserRole } from './interfaces/types';
 import { getCurrentUser } from './authService';
 import { gerarParcelasAutomaticas } from './projetoParcelasService';
+import { getEmpresaAtualId } from '../utils/config';
 
 const ensureAdmin = () => {
     const user = getCurrentUser();
@@ -24,6 +25,7 @@ export const getProjetos = async (): Promise<Projeto[]> => {
             projeto_tipo:projeto_tipos(id, nome),
             contrato:contratos_gerados(arquivo_path)
         `)
+        .eq('empresa_id', getEmpresaAtualId())
         .order('created_at', { ascending: false });
 
     if (error) {
@@ -76,6 +78,7 @@ export const getProjetosByCliente = async (clienteId: string): Promise<Projeto[]
             contrato:contratos_gerados(arquivo_path)
         `)
         .eq('cliente_id', clienteId)
+        .eq('empresa_id', getEmpresaAtualId())
         .order('created_at', { ascending: false });
 
     if (error) {
@@ -125,6 +128,7 @@ export const getProjetoById = async (id: string): Promise<Projeto | undefined> =
             contrato:contratos_gerados(arquivo_path)
         `)
         .eq('id', id)
+        .eq('empresa_id', getEmpresaAtualId())
         .single();
 
     if (error || !data) {
@@ -189,7 +193,8 @@ export const createProjeto = async (projeto: Omit<Projeto, 'id' | 'createdAt' | 
             numero_prestacoes: projeto.numeroPrestacoes,
             data_primeiro_vencimento: projeto.dataPrimeiroVencimento,
             projeto_tipo_id: projeto.projetoTipoId,
-            observacoes: projeto.observacoes
+            observacoes: projeto.observacoes,
+            empresa_id: getEmpresaAtualId()
         })
         .select()
         .single();
@@ -246,7 +251,8 @@ export const updateProjeto = async (id: string, projeto: Partial<Omit<Projeto, '
     const { error } = await supabase
         .from('projetos')
         .update(updateData)
-        .eq('id', id);
+        .eq('id', id)
+        .eq('empresa_id', getEmpresaAtualId());
 
     if (error) {
         throw new Error(`Erro ao atualizar projeto: ${error.message}`);
@@ -254,7 +260,13 @@ export const updateProjeto = async (id: string, projeto: Partial<Omit<Projeto, '
 
     // Se valor ou número de prestações mudou, a função gerarParcelasAutomaticas 
     // lida com a verificação de existência interna (ou podemos forçar aqui se necessário)
-    const { data: updatedProj } = await supabase.from('projetos').select('valor, numero_prestacoes, data_primeiro_vencimento').eq('id', id).single();
+    const { data: updatedProj } = await supabase
+        .from('projetos')
+        .select('valor, numero_prestacoes, data_primeiro_vencimento')
+        .eq('id', id)
+        .eq('empresa_id', getEmpresaAtualId())
+        .single();
+
     if (updatedProj) {
         await gerarParcelasAutomaticas(id, updatedProj.valor || 0, updatedProj.numero_prestacoes || 0, updatedProj.data_primeiro_vencimento);
     }
@@ -270,7 +282,8 @@ export const deleteProjeto = async (id: string): Promise<void> => {
     const { error: errorParcelas } = await supabase
         .from('projeto_parcelas')
         .delete()
-        .eq('projeto_id', id);
+        .eq('projeto_id', id)
+        .eq('empresa_id', getEmpresaAtualId());
 
     if (errorParcelas) {
         throw new Error(`Erro ao excluir parcelas do projeto: ${errorParcelas.message}`);
@@ -280,7 +293,8 @@ export const deleteProjeto = async (id: string): Promise<void> => {
     const { error: errorEtapas } = await supabase
         .from('projeto_etapas')
         .delete()
-        .eq('projeto_id', id);
+        .eq('projeto_id', id)
+        .eq('empresa_id', getEmpresaAtualId());
 
     if (errorEtapas) {
         throw new Error(`Erro ao excluir etapas do projeto: ${errorEtapas.message}`);
@@ -290,7 +304,8 @@ export const deleteProjeto = async (id: string): Promise<void> => {
     const { error: errorProjeto } = await supabase
         .from('projetos')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('empresa_id', getEmpresaAtualId());
 
     if (errorProjeto) {
         throw new Error(`Erro ao excluir o projeto: ${errorProjeto.message}`);

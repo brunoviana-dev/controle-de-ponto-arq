@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { ContaPagar, ContaPagarPagamento } from './interfaces/types';
+import { getEmpresaAtualId } from '../utils/config';
 
 export const contasPagarService = {
     async getContasPorMes(mes: number, ano: number): Promise<ContaPagar[]> {
@@ -9,6 +10,7 @@ export const contasPagarService = {
         const { data, error } = await supabase
             .from('contas_pagar')
             .select('*')
+            .eq('empresa_id', getEmpresaAtualId())
             .lte('data_vencimento', endDate)
             .or(`data_vencimento.gte.${startDate},recorrente.eq.true`)
             .order('data_vencimento', { ascending: true });
@@ -24,7 +26,7 @@ export const contasPagarService = {
     async createConta(conta: Omit<ContaPagar, 'id' | 'created_at'>): Promise<ContaPagar> {
         const { data, error } = await supabase
             .from('contas_pagar')
-            .insert([conta])
+            .insert([{ ...conta, empresa_id: getEmpresaAtualId() }])
             .select()
             .single();
 
@@ -41,6 +43,7 @@ export const contasPagarService = {
             .from('contas_pagar')
             .update(conta)
             .eq('id', id)
+            .eq('empresa_id', getEmpresaAtualId())
             .select()
             .single();
 
@@ -56,7 +59,8 @@ export const contasPagarService = {
         const { error } = await supabase
             .from('contas_pagar')
             .delete()
-            .eq('id', id);
+            .eq('id', id)
+            .eq('empresa_id', getEmpresaAtualId());
 
         if (error) {
             console.error('Erro ao deletar conta a pagar:', error);
@@ -69,6 +73,7 @@ export const contasPagarService = {
             .from('contas_pagar')
             .select('*')
             .eq('id', id)
+            .eq('empresa_id', getEmpresaAtualId())
             .single();
 
         return { data, error };
@@ -79,7 +84,8 @@ export const contasPagarService = {
             .from('contas_pagar_pagamentos')
             .select('*')
             .eq('mes_referencia', mes)
-            .eq('ano_referencia', ano);
+            .eq('ano_referencia', ano)
+            .eq('empresa_id', getEmpresaAtualId());
 
         if (error) {
             console.error('Erro ao buscar pagamentos:', error);
@@ -92,7 +98,7 @@ export const contasPagarService = {
     async registrarPagamento(pagamento: Omit<ContaPagarPagamento, 'id' | 'created_at'>): Promise<ContaPagarPagamento> {
         const { data, error } = await supabase
             .from('contas_pagar_pagamentos')
-            .insert([pagamento])
+            .insert([{ ...pagamento, empresa_id: getEmpresaAtualId() }])
             .select()
             .single();
 
