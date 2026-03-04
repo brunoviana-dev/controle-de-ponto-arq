@@ -28,7 +28,7 @@ export const login = async (email: string, password: string): Promise<User> => {
 
     if (cliente) {
         await supabase.auth.signOut();
-        throw new Error('Este usuário é um cliente e não pode acessar esta área.');
+        throw new Error('Colaborador não Encontrado');
     }
 
     // 2. Buscar dados complementares na tabela colaboradores pelo user_id
