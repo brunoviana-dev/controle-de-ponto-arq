@@ -86,15 +86,6 @@ const ClienteLoginPage: React.FC = () => {
                                 )}
                             </button>
                         </div>
-                        <div className="text-right mt-1">
-                            <button
-                                type="button"
-                                onClick={() => navigate('/area-cliente/esqueci-senha')}
-                                className="text-xs text-primary hover:underline transition-colors"
-                            >
-                                Esqueci minha senha?
-                            </button>
-                        </div>
                     </div>
 
                     <button
