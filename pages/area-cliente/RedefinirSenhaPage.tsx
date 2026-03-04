@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 
@@ -8,88 +8,75 @@ const RedefinirSenhaPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null);
     const navigate = useNavigate();
-    const isSubmitting = useRef(false);
 
     useEffect(() => {
-        // Tenta estabelecer a sessão assim que a página carrega
-        const setup = async () => {
-            const hash = window.location.hash.substring(1);
-            const params = new URLSearchParams(hash);
-            const accessToken = params.get('access_token');
-            const refreshToken = params.get('refresh_token');
+        // Tenta apenas uma vez extrair e configurar a sessão
+        const params = new URLSearchParams(window.location.hash.substring(1) || window.location.search.substring(1));
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
 
-            if (accessToken && refreshToken) {
-                await supabase.auth.setSession({
-                    access_token: accessToken,
-                    refresh_token: refreshToken
-                }).catch(() => { /* ignora erro de abort inicial */ });
-            }
-        };
-        setup();
+        if (accessToken && refreshToken) {
+            supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken
+            }).catch(console.error);
+        }
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        if (isSubmitting.current) return;
 
         if (password !== confirmPassword) {
             setMessage({ type: 'error', text: 'As senhas não coincidem.' });
             return;
         }
 
-        isSubmitting.current = true;
         setLoading(true);
-        setMessage({ type: 'info', text: 'Enviando nova senha...' });
+        setMessage({ type: 'info', text: 'Processando alteração...' });
+
+        // Timer de segurança para não travar a UI
+        const timeout = setTimeout(() => {
+            if (loading) {
+                setLoading(false);
+                setMessage({ type: 'error', text: 'A operação demorou muito. Por favor, tente clicar em salvar novamente.' });
+            }
+        }, 15000);
 
         try {
-            // Garante sessão antes do update
+            // Garante que o usuário está autenticado pelo link
             const { data: { session } } = await supabase.auth.getSession();
 
             if (!session) {
-                const hash = window.location.hash.substring(1);
-                const params = new URLSearchParams(hash);
+                const params = new URLSearchParams(window.location.hash.substring(1) || window.location.search.substring(1));
                 const accessToken = params.get('access_token');
                 const refreshToken = params.get('refresh_token');
 
                 if (accessToken && refreshToken) {
-                    await supabase.auth.setSession({
-                        access_token: accessToken,
-                        refresh_token: refreshToken
-                    });
+                    await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
                 } else {
-                    throw new Error('Não foi possível validar seu acesso. Peça um novo link por e-mail.');
+                    throw new Error('Link de acesso não detectado. Peça um novo link.');
                 }
             }
 
-            // Tenta atualizar a senha
             const { error } = await supabase.auth.updateUser({ password });
+            clearTimeout(timeout);
 
-            if (error) {
-                // Se o erro for o "abortado", tentamos uma última vez após mini-delay
-                if (error.message.includes('aborted')) {
-                    await new Promise(r => setTimeout(r, 1000));
-                    const { error: retryError } = await supabase.auth.updateUser({ password });
-                    if (retryError) throw retryError;
-                } else {
-                    throw error;
-                }
-            }
+            if (error) throw error;
 
             setMessage({ type: 'success', text: 'Senha alterada com sucesso!' });
             setTimeout(() => navigate('/area-cliente/login'), 2000);
 
         } catch (err: any) {
-            console.error('Erro:', err);
-            setMessage({
-                type: 'error',
-                text: err.message.includes('aborted')
-                    ? 'O navegador interrompeu a conexão. Por favor, tente clicar novamente no botão.'
-                    : 'Erro: ' + (err.message || 'Falha na comunicação.')
-            });
-        } finally {
+            clearTimeout(timeout);
+            console.error('Falha geral:', err);
+
+            let errorText = err.message || 'Erro de conexão.';
+            if (errorText.includes('aborted')) {
+                errorText = 'A conexão foi interrompida. Clique em salvar novamente para concluir.';
+            }
+
+            setMessage({ type: 'error', text: 'Falha: ' + errorText });
             setLoading(false);
-            isSubmitting.current = false;
         }
     };
 
@@ -98,7 +85,7 @@ const RedefinirSenhaPage: React.FC = () => {
             <div className="w-full max-w-md bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700">
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold text-white mb-2">Nova Senha</h1>
-                    <p className="text-slate-400">Digite sua nova senha de acesso</p>
+                    <p className="text-slate-400">Insira sua nova senha de acesso</p>
                 </div>
 
                 {message && (
@@ -110,44 +97,42 @@ const RedefinirSenhaPage: React.FC = () => {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider ml-1">Nova Senha</label>
-                        <input
-                            type="password"
-                            required
-                            className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={e => setPassword(e.target.value)}
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider ml-1">Confirmar Senha</label>
-                        <input
-                            type="password"
-                            required
-                            className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                            placeholder="••••••••"
-                            value={confirmPassword}
-                            onChange={e => setConfirmPassword(e.target.value)}
-                        />
-                    </div>
+                <form onSubmit={handleSubmit} className="space-y-5">
+                    <input
+                        type="password"
+                        placeholder="Nova Senha"
+                        required
+                        disabled={loading && !message}
+                        className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white outline-none focus:border-blue-500 transition-all"
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                    />
+                    <input
+                        type="password"
+                        placeholder="Confirmar Nova Senha"
+                        required
+                        disabled={loading && !message}
+                        className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white outline-none focus:border-blue-500 transition-all"
+                        value={confirmPassword}
+                        onChange={e => setConfirmPassword(e.target.value)}
+                    />
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-900/20 transition-all disabled:opacity-50 active:scale-[0.98]"
+                        className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all disabled:opacity-50"
                     >
-                        {loading ? 'Processando...' : 'Salvar Nova Senha'}
+                        {loading ? 'Salvando...' : 'Salvar Alteração'}
                     </button>
 
-                    <button
-                        type="button"
-                        onClick={() => navigate('/area-cliente/login')}
-                        className="w-full text-center text-sm text-slate-400 hover:text-white transition-colors"
-                    >
-                        Voltar para o Login
-                    </button>
+                    {!loading && (
+                        <button
+                            type="button"
+                            onClick={() => navigate('/area-cliente/login')}
+                            className="w-full text-center text-sm text-slate-500 hover:text-slate-300"
+                        >
+                            Cancelar e voltar
+                        </button>
+                    )}
                 </form>
             </div>
         </div>
