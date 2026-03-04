@@ -5,17 +5,32 @@ import { User, UserRole } from './interfaces/types';
  * Login com autenticação via Supabase
  * Admin e colaboradores são buscados da tabela colaboradores
  */
-export const login = async (login: string, pass: string): Promise<User> => {
-    // Buscar usuário (admin ou colaborador) no banco
-    const { data: colaborador, error } = await supabase
+export const login = async (email: string, pass: string): Promise<User> => {
+    // 1. Autenticar no Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: pass
+    });
+
+    if (authError) {
+        throw new Error('Credenciais inválidas: ' + authError.message);
+    }
+
+    if (!authData.user) {
+        throw new Error('Erro ao obter dados do usuário');
+    }
+
+    // 2. Buscar dados complementares na tabela colaboradores pelo user_id
+    const { data: colaborador, error: colabError } = await supabase
         .from('colaboradores')
         .select('*')
-        .eq('login', login)
-        .eq('senha_hash', pass) // Em produção, usar bcrypt
+        .eq('user_id', authData.user.id)
         .single();
 
-    if (error || !colaborador) {
-        throw new Error('Credenciais inválidas');
+    if (colabError || !colaborador) {
+        // Se não encontrar na tabela colaboradores, pode ser um cliente (tratado em outro lugar ou aqui)
+        // Por ora, vamos manter a lógica de colaboradores aqui
+        throw new Error('Colaborador não vinculado ao sistema');
     }
 
     // Determinar role baseado no campo perfil
@@ -24,11 +39,10 @@ export const login = async (login: string, pass: string): Promise<User> => {
     const user: User = {
         id: colaborador.id,
         name: colaborador.nome,
-        login: colaborador.login,
-        email: colaborador.email,
         role: role,
+        email: colaborador.email,
         empresaId: colaborador.empresa_id,
-        token: colaborador.id
+        token: authData.session?.access_token || colaborador.id
     };
 
     localStorage.setItem('app_session', JSON.stringify(user));
@@ -38,7 +52,8 @@ export const login = async (login: string, pass: string): Promise<User> => {
 /**
  * Logout do usuário
  */
-export const logout = () => {
+export const logout = async () => {
+    await supabase.auth.signOut();
     localStorage.removeItem('app_session');
 };
 

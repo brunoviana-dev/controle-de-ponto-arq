@@ -7,9 +7,8 @@ export enum UserRole {
 export interface User {
   id: string;
   name: string;
-  login: string;
   role: UserRole;
-  email?: string;
+  email: string;
   empresaId: string;
   token?: string; // Mock token
 }
@@ -21,8 +20,8 @@ export interface Colaborador {
   telefone: string;
   valorHora: number;
   valorInssFixo?: number;
-  login: string;
   perfil: 'admin' | 'usuario';
+  userId?: string;
   senha?: string; // Only used for creation/auth check, not returned in lists ideally
   createdAt: string;
 }

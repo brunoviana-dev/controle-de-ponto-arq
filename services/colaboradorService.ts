@@ -8,7 +8,7 @@ import { getEmpresaAtualId } from '../utils/config';
 export const getColaboradores = async (): Promise<Colaborador[]> => {
     const { data, error } = await supabase
         .from('colaboradores')
-        .select('id, nome, email, telefone, valor_hora, valor_inss_fixo, login, perfil, created_at')
+        .select('id, nome, email, telefone, valor_hora, valor_inss_fixo, perfil, user_id, created_at')
         .eq('empresa_id', getEmpresaAtualId())
         .order('nome');
 
@@ -24,8 +24,8 @@ export const getColaboradores = async (): Promise<Colaborador[]> => {
         telefone: c.telefone,
         valorHora: c.valor_hora,
         valorInssFixo: c.valor_inss_fixo,
-        login: c.login,
         perfil: c.perfil,
+        userId: c.user_id,
         createdAt: c.created_at
     }));
 };
@@ -36,7 +36,7 @@ export const getColaboradores = async (): Promise<Colaborador[]> => {
 export const getColaboradorById = async (id: string): Promise<Colaborador | undefined> => {
     const { data, error } = await supabase
         .from('colaboradores')
-        .select('id, nome, email, telefone, valor_hora, valor_inss_fixo, login, perfil, created_at')
+        .select('id, nome, email, telefone, valor_hora, valor_inss_fixo, perfil, user_id, created_at')
         .eq('id', id)
         .eq('empresa_id', getEmpresaAtualId())
         .single();
@@ -52,8 +52,8 @@ export const getColaboradorById = async (id: string): Promise<Colaborador | unde
         telefone: data.telefone,
         valorHora: data.valor_hora,
         valorInssFixo: data.valor_inss_fixo,
-        login: data.login,
         perfil: data.perfil,
+        userId: data.user_id,
         createdAt: data.created_at
     };
 };
@@ -62,35 +62,31 @@ export const getColaboradorById = async (id: string): Promise<Colaborador | unde
  * Salva um colaborador (cria novo ou atualiza existente)
  */
 export const saveColaborador = async (colab: Partial<Colaborador>): Promise<void> => {
-    if (colab.id) {
-        // Atualizar existente
+    let collaboratorId = colab.id;
+
+    if (collaboratorId) {
+        // 1. Atualizar dados básicos na tabela colaboradores
         const updateData: any = {
             nome: colab.nome,
             email: colab.email,
             telefone: colab.telefone,
             valor_hora: colab.valorHora,
             valor_inss_fixo: colab.valorInssFixo || 0,
-            login: colab.login,
             perfil: colab.perfil || 'usuario'
         };
 
-        // Só atualizar senha se foi fornecida
-        if (colab.senha) {
-            updateData.senha_hash = colab.senha; // Em produção, usar bcrypt
-        }
-
-        const { error } = await supabase
+        const { error: updateError } = await supabase
             .from('colaboradores')
             .update(updateData)
-            .eq('id', colab.id)
+            .eq('id', collaboratorId)
             .eq('empresa_id', getEmpresaAtualId());
 
-        if (error) {
-            throw new Error(`Erro ao atualizar colaborador: ${error.message}`);
+        if (updateError) {
+            throw new Error(`Erro ao atualizar colaborador: ${updateError.message}`);
         }
     } else {
-        // Criar novo
-        const { error } = await supabase
+        // 1. Criar novo registro na tabela colaboradores
+        const { data, error: insertError } = await supabase
             .from('colaboradores')
             .insert({
                 nome: colab.nome,
@@ -98,14 +94,31 @@ export const saveColaborador = async (colab: Partial<Colaborador>): Promise<void
                 telefone: colab.telefone,
                 valor_hora: colab.valorHora,
                 valor_inss_fixo: colab.valorInssFixo || 0,
-                login: colab.login,
                 perfil: colab.perfil || 'usuario',
-                senha_hash: colab.senha || 'senha123', // Em produção, usar bcrypt
                 empresa_id: getEmpresaAtualId()
-            });
+            })
+            .select()
+            .single();
 
-        if (error) {
-            throw new Error(`Erro ao criar colaborador: ${error.message}`);
+        if (insertError) {
+            throw new Error(`Erro ao criar colaborador: ${insertError.message}`);
+        }
+        collaboratorId = data.id;
+    }
+
+    // 2. Gerenciar Autenticação no Supabase Auth
+    if (colab.email && (colab.senha || !colab.id)) {
+        const { error: authError } = await supabase.functions.invoke('manage-user-auth', {
+            body: {
+                email: colab.email,
+                password: colab.senha || 'senha123',
+                targetId: collaboratorId,
+                table: 'colaboradores'
+            }
+        });
+
+        if (authError) {
+            console.error('Erro ao sincronizar com Supabase Auth:', authError);
         }
     }
 };

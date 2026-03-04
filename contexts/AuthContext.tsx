@@ -35,9 +35,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const clientUser: User = {
                     id: session.user.id,
                     name: session.user.user_metadata?.full_name || session.user.email || 'Cliente',
-                    login: session.user.email || '',
                     role: UserRole.CLIENTE,
-                    email: session.user.email,
+                    email: session.user.email || '',
                     empresaId: dbCliente?.empresa_id || ''
                 };
                 setUser(clientUser);

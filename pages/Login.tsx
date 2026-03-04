@@ -50,14 +50,14 @@ const Login: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">Login</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1">E-mail</label>
             <input
-              type="text"
+              type="email"
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full bg-background border border-slate-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-              placeholder="Digite seu login"
+              placeholder="Digite seu e-mail"
             />
           </div>
 

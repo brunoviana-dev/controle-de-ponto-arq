@@ -40,7 +40,7 @@ const CollaboratorsPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingColab.nome || !editingColab.login) return;
+    if (!editingColab.nome || !editingColab.email) return;
 
     await saveColaborador(editingColab);
     setIsModalOpen(false);
@@ -116,7 +116,7 @@ const CollaboratorsPage: React.FC = () => {
                   <th className="px-6 py-4">Contato</th>
                   <th className="px-6 py-4">Valor/Hora</th>
                   <th className="px-6 py-4">Perfil</th>
-                  <th className="px-6 py-4">Login</th>
+                  <th className="px-6 py-4">E-mail</th>
                   <th className="px-6 py-4 text-right">Ações</th>
                 </tr>
               </thead>
@@ -143,7 +143,7 @@ const CollaboratorsPage: React.FC = () => {
                           {colab.perfil || 'usuario'}
                         </span>
                       </td>
-                      <td className="px-6 py-4">{colab.login}</td>
+                      <td className="px-6 py-4">{colab.email}</td>
                       <td className="px-6 py-4 text-right space-x-2">
                         <button
                           onClick={() => handleOpenModal(colab)}
@@ -231,16 +231,6 @@ const CollaboratorsPage: React.FC = () => {
               <div className="border-t border-slate-700 pt-4 mt-2">
                 <h4 className="text-sm font-semibold text-slate-300 mb-3">Acesso</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs text-slate-400 mb-1">Login</label>
-                    <input
-                      type="text"
-                      required
-                      className="w-full bg-background border border-slate-600 rounded p-2 text-white focus:border-primary outline-none"
-                      value={editingColab.login || ''}
-                      onChange={e => setEditingColab({ ...editingColab, login: e.target.value })}
-                    />
-                  </div>
                   <div>
                     <label className="block text-xs text-slate-400 mb-1">Perfil</label>
                     <select
