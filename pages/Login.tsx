@@ -27,8 +27,8 @@ const Login: React.FC = () => {
       } else {
         navigate('/ponto');
       }
-    } catch (err) {
-      setError('UsuÃ¡rio ou senha incorretos.');
+    } catch (err: any) {
+      setError(err.message || 'Usuário ou senha incorretos.');
     } finally {
       setIsLoading(false);
     }

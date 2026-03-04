@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import { FolhaPonto, PontoDia } from './interfaces/types';
 import { getEmpresaAtualId } from '../utils/config';
+import { getCurrentUser } from './authService';
 
 /**
  * Cria uma folha de ponto vazia para um mês
@@ -53,7 +54,6 @@ export const getFolhaPonto = async (
         .eq('colaborador_id', colaboradorId)
         .eq('mes', mes)
         .eq('ano', ano)
-        .eq('empresa_id', getEmpresaAtualId())
         .single();
 
     // Se encontrou, retornar

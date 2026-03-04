@@ -17,28 +17,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [user, setUser] = useState<User | null>(getCurrentUser());
 
     React.useEffect(() => {
-        // Escutar mudanças de autenticação do Supabase (para clientes)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            // Se há um admin/colaborador logado via localStorage, não interferir
-            const adminSession = localStorage.getItem('app_session');
-            if (adminSession) return;
-
             if (session?.user) {
-                // Se temos uma sessão do Supabase e não há admin logado, é um cliente
-                // Buscar dados do cliente no banco para pegar a empresa_id
-                const { data: dbCliente } = await supabase
+                // Se estiver na rota de login ou não for área do cliente, deixe o Login.tsx resolver
+                // Isso evita conflitos de estado durante o login de admin/colaborador
+                const path = window.location.hash || window.location.pathname;
+                if (!path.includes('area-cliente')) {
+                    return;
+                }
+
+                // Só buscar se não tiver sessão de admin já ativa
+                const adminSession = localStorage.getItem('app_session');
+                if (adminSession) return;
+
+                const { data: dbCliente, error: dbError } = await supabase
                     .from('clientes')
                     .select('empresa_id')
                     .eq('auth_user_id', session.user.id)
                     .single();
+
+                if (dbError || !dbCliente) return;
 
                 const clientUser: User = {
                     id: session.user.id,
                     name: session.user.user_metadata?.full_name || session.user.email || 'Cliente',
                     role: UserRole.CLIENTE,
                     email: session.user.email || '',
-                    empresaId: dbCliente?.empresa_id || ''
+                    empresaId: dbCliente.empresa_id || ''
                 };
+
                 setUser(clientUser);
                 localStorage.setItem('app_session_client', JSON.stringify(clientUser));
             } else if (event === 'SIGNED_OUT') {
@@ -47,7 +54,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         });
 
-        // Carregar sessão de cliente se existir e não houver admin/colab
         const clientSession = localStorage.getItem('app_session_client');
         if (clientSession && !user) {
             setUser(JSON.parse(clientSession));

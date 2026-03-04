@@ -55,7 +55,7 @@ const TimesheetPage: React.FC<TimesheetPageProps> = ({ adminView }) => {
       }
     };
     fetchFolha();
-  }, [selectedColabId, selectedMonth, selectedYear]);
+  }, [selectedColabId, selectedMonth, selectedYear, user]);
 
   // Calculations for Header
   const totals = useMemo(() => {

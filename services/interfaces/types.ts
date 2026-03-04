@@ -10,7 +10,13 @@ export interface User {
   role: UserRole;
   email: string;
   empresaId: string;
+  userId?: string; // Auth User ID
   token?: string; // Mock token
+}
+
+export interface LoginResponse {
+  user: User;
+  session?: any;
 }
 
 export interface Colaborador {

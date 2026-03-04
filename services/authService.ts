@@ -1,19 +1,18 @@
 import { supabase } from './supabaseClient';
 import { User, UserRole } from './interfaces/types';
 
-/**
- * Login com autenticação via Supabase
- * Admin e colaboradores são buscados da tabela colaboradores
- */
-export const login = async (email: string, pass: string): Promise<User> => {
+// Chave para persistência local (somente admin/colab)
+const SESSION_KEY = 'app_session';
+
+export const login = async (email: string, password: string): Promise<User> => {
     // 1. Autenticar no Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: pass
+        email,
+        password
     });
 
     if (authError) {
-        throw new Error('Credenciais inválidas: ' + authError.message);
+        throw new Error(authError.message);
     }
 
     if (!authData.user) {
@@ -21,16 +20,25 @@ export const login = async (email: string, pass: string): Promise<User> => {
     }
 
     // 2. Buscar dados complementares na tabela colaboradores pelo user_id
-    const { data: colaborador, error: colabError } = await supabase
+    // Adicionamos um timeout para evitar travamentos em caso de problemas de rede/banco
+    const colabPromise = supabase
         .from('colaboradores')
         .select('*')
         .eq('user_id', authData.user.id)
         .single();
 
-    if (colabError || !colaborador) {
-        // Se não encontrar na tabela colaboradores, pode ser um cliente (tratado em outro lugar ou aqui)
-        // Por ora, vamos manter a lógica de colaboradores aqui
-        throw new Error('Colaborador não vinculado ao sistema');
+    const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Tempo esgotado ao buscar perfil do colaborador')), 10000)
+    );
+
+    const { data: colaborador, error: colabError } = await Promise.race([colabPromise, timeoutPromise]) as any;
+
+    if (colabError) {
+        throw new Error('Erro ao buscar perfil do colaborador: ' + colabError.message);
+    }
+
+    if (!colaborador) {
+        throw new Error('Sua conta não possui um perfil de colaborador vinculado.');
     }
 
     // Determinar role baseado no campo perfil
@@ -39,28 +47,24 @@ export const login = async (email: string, pass: string): Promise<User> => {
     const user: User = {
         id: colaborador.id,
         name: colaborador.nome,
-        role: role,
+        role,
         email: colaborador.email,
         empresaId: colaborador.empresa_id,
-        token: authData.session?.access_token || colaborador.id
+        userId: authData.user.id
     };
 
-    localStorage.setItem('app_session', JSON.stringify(user));
+    // 3. Salvar sessão local (admin/colaborador)
+    localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+
     return user;
 };
 
-/**
- * Logout do usuário
- */
-export const logout = async () => {
-    await supabase.auth.signOut();
-    localStorage.removeItem('app_session');
+export const logout = () => {
+    supabase.auth.signOut();
+    localStorage.removeItem(SESSION_KEY);
 };
 
-/**
- * Retorna o usuário logado da sessão local
- */
 export const getCurrentUser = (): User | null => {
-    const session = localStorage.getItem('app_session');
+    const session = localStorage.getItem(SESSION_KEY);
     return session ? JSON.parse(session) : null;
 };

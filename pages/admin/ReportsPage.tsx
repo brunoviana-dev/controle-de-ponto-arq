@@ -40,7 +40,7 @@ const ReportsPage: React.FC = () => {
     const colaboradores = await getColaboradores();
 
     // Filtrar admin da lista de colaboradores
-    const colaboradoresFiltrados = colaboradores.filter(c => c.login !== 'admin');
+    const colaboradoresFiltrados = colaboradores.filter(c => c.perfil !== 'admin');
     const results: ResumoPagamento[] = [];
 
     for (const colab of colaboradoresFiltrados) {
