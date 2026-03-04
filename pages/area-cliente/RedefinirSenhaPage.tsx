@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 
@@ -11,64 +11,80 @@ const RedefinirSenhaPage: React.FC = () => {
         text: 'Validando link de acesso...'
     });
     const navigate = useNavigate();
+    const hasCheckedSession = useRef(false);
 
     useEffect(() => {
+        if (hasCheckedSession.current) return;
+        hasCheckedSession.current = true;
+
         let subscription: any = null;
         let timer: any = null;
 
         const checkSession = async () => {
-            // 1. Tentar capturar o token da URL (pode vir no hash # ou na query ?)
-            const hash = window.location.hash.substring(1);
-            const search = window.location.search.substring(1);
-            const params = new URLSearchParams(hash || search);
+            try {
+                // 1. Tentar pegar sessão já processada automaticamente
+                const { data: { session: initialSession } } = await supabase.auth.getSession();
+                if (initialSession) {
+                    console.log('Sessão inicial detectada');
+                    setMessage(null);
+                    return;
+                }
 
-            const accessToken = params.get('access_token');
-            const refreshToken = params.get('refresh_token');
+                // 2. Extrair parâmetros da URL (tanto hash quanto search)
+                const hash = window.location.hash.substring(1);
+                const search = window.location.search.substring(1);
+                const params = new URLSearchParams(hash || search);
 
-            if (accessToken && refreshToken) {
-                console.log('Token detectado na URL, definindo sessão...');
-                try {
+                const accessToken = params.get('access_token');
+                const refreshToken = params.get('refresh_token');
+                const errorDesc = params.get('error_description');
+
+                if (errorDesc) {
+                    setMessage({ type: 'error', text: errorDesc.replace(/\+/g, ' ') });
+                    return;
+                }
+
+                if (accessToken && refreshToken) {
+                    console.log('Tokens encontrados na URL, tentando definir sessão...');
                     const { error } = await supabase.auth.setSession({
                         access_token: accessToken,
                         refresh_token: refreshToken
                     });
+
                     if (!error) {
-                        console.log('Sessão definida com sucesso');
+                        console.log('Sessão definida com sucesso via URL');
                         setMessage(null);
                         return;
+                    } else {
+                        console.error('Erro ao definir sessão via URL:', error);
                     }
-                } catch (e) {
-                    console.error('Erro ao definir sessão manual:', e);
                 }
+
+                // 3. Monitorar mudanças de estado
+                const { data } = supabase.auth.onAuthStateChange((event, session) => {
+                    console.log('Evento de autenticação:', event);
+                    if (session || event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') {
+                        setMessage(null);
+                    }
+                });
+                subscription = data.subscription;
+
+                // 4. Timeout de segurança
+                timer = setTimeout(async () => {
+                    const { data: { session: finalSession } } = await supabase.auth.getSession();
+                    if (!finalSession) {
+                        setMessage({
+                            type: 'error',
+                            text: 'O link de acesso não pôde ser validado. Por favor, tente recarregar a página ou solicite um novo link.'
+                        });
+                    } else {
+                        setMessage(null);
+                    }
+                }, 5000);
+            } catch (err) {
+                console.error('Erro ao validar sessão:', err);
+                setMessage({ type: 'error', text: 'Ocorreu um erro ao validar seu acesso.' });
             }
-
-            // 2. Tentar pegar sessão já processada automaticamente
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                setMessage(null);
-                return;
-            }
-
-            // 3. Monitorar mudanças de estado
-            const { data } = supabase.auth.onAuthStateChange((event, session) => {
-                if (session) {
-                    setMessage(null);
-                }
-            });
-            subscription = data.subscription;
-
-            // 4. Timeout de segurança
-            timer = setTimeout(async () => {
-                const { data: { session: finalSession } } = await supabase.auth.getSession();
-                if (!finalSession) {
-                    setMessage({
-                        type: 'error',
-                        text: 'Link de redefinição inválido ou expirado. Por favor, solicite um novo link.'
-                    });
-                } else {
-                    setMessage(null);
-                }
-            }, 5000); // Reduzido para 5s
         };
 
         checkSession();
@@ -81,6 +97,7 @@ const RedefinirSenhaPage: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setMessage(null);
 
         if (password !== confirmPassword) {
             setMessage({ type: 'error', text: 'As senhas não coincidem.' });
@@ -93,9 +110,14 @@ const RedefinirSenhaPage: React.FC = () => {
         }
 
         setLoading(true);
-        setMessage(null);
 
         try {
+            // Garantir que temos uma sessão ativa antes de tentar o update
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                throw new Error('Sessão expirada ou inválida. Por favor, peça um novo link.');
+            }
+
             const { error } = await supabase.auth.updateUser({
                 password: password
             });
@@ -111,6 +133,7 @@ const RedefinirSenhaPage: React.FC = () => {
                 navigate('/area-cliente/login');
             }, 3000);
         } catch (err: any) {
+            console.error('Erro ao salvar nova senha:', err);
             setMessage({
                 type: 'error',
                 text: 'Erro ao atualizar senha: ' + (err.message || 'Erro desconhecido')
@@ -172,7 +195,7 @@ const RedefinirSenhaPage: React.FC = () => {
                         {loading ? 'Atualizando...' : 'Definir Nova Senha'}
                     </button>
 
-                    {message?.type === 'error' && message.text.includes('expirado') && (
+                    {message?.type === 'error' && (message.text.includes('expirado') || message.text.includes('pôde ser validado')) && (
                         <div className="text-center mt-4">
                             <button
                                 type="button"
