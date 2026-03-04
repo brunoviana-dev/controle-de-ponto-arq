@@ -14,50 +14,77 @@ const AuthContext = createContext<AuthContextType>(null!);
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<User | null>(getCurrentUser());
+    const [user, setUser] = useState<User | null>(() => {
+        const adminSession = localStorage.getItem('app_session');
+        if (adminSession) return JSON.parse(adminSession);
+        const clientSession = localStorage.getItem('app_session_client');
+        if (clientSession) return JSON.parse(clientSession);
+        return null;
+    });
 
     React.useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (session?.user) {
-                // Se estiver na rota de login ou não for área do cliente, deixe o Login.tsx resolver
-                // Isso evita conflitos de estado durante o login de admin/colaborador
-                const path = window.location.hash || window.location.pathname;
-                if (!path.includes('area-cliente')) {
+                // Se já temos um user de admin no localStorage vindo do login explícito, 
+                // priorize ele (para manter compatibilidade com o login de admin)
+                const adminSessionStr = localStorage.getItem('app_session');
+                if (adminSessionStr) {
+                    const adminUser = JSON.parse(adminSessionStr);
+                    if (adminUser.userId === session.user.id) {
+                        setUser(adminUser);
+                        return;
+                    }
+                }
+
+                // Senão, buscar no banco para ver quem é esse usuário (Colaborador ou Cliente)
+                // 1. Tentar Colaborador
+                const { data: colab } = await supabase
+                    .from('colaboradores')
+                    .select('*')
+                    .eq('user_id', session.user.id)
+                    .single();
+
+                if (colab) {
+                    const staffUser: User = {
+                        id: colab.id,
+                        name: colab.nome,
+                        role: colab.perfil === 'admin' ? UserRole.ADMIN : UserRole.COLABORADOR,
+                        email: colab.email,
+                        empresaId: colab.empresa_id,
+                        userId: session.user.id
+                    };
+                    setUser(staffUser);
+                    localStorage.setItem('app_session', JSON.stringify(staffUser));
+                    localStorage.removeItem('app_session_client');
                     return;
                 }
 
-                // Só buscar se não tiver sessão de admin já ativa
-                const adminSession = localStorage.getItem('app_session');
-                if (adminSession) return;
-
-                const { data: dbCliente, error: dbError } = await supabase
+                // 2. Tentar Cliente
+                const { data: cliente } = await supabase
                     .from('clientes')
-                    .select('empresa_id')
+                    .select('*')
                     .eq('auth_user_id', session.user.id)
                     .single();
 
-                if (dbError || !dbCliente) return;
-
-                const clientUser: User = {
-                    id: session.user.id,
-                    name: session.user.user_metadata?.full_name || session.user.email || 'Cliente',
-                    role: UserRole.CLIENTE,
-                    email: session.user.email || '',
-                    empresaId: dbCliente.empresa_id || ''
-                };
-
-                setUser(clientUser);
-                localStorage.setItem('app_session_client', JSON.stringify(clientUser));
+                if (cliente) {
+                    const clientUser: User = {
+                        id: session.user.id,
+                        name: cliente.nome || session.user.email || 'Cliente',
+                        role: UserRole.CLIENTE,
+                        email: session.user.email || '',
+                        empresaId: cliente.empresa_id || ''
+                    };
+                    setUser(clientUser);
+                    localStorage.setItem('app_session_client', JSON.stringify(clientUser));
+                    localStorage.removeItem('app_session');
+                    return;
+                }
             } else if (event === 'SIGNED_OUT') {
+                localStorage.removeItem('app_session');
                 localStorage.removeItem('app_session_client');
                 setUser(null);
             }
         });
-
-        const clientSession = localStorage.getItem('app_session_client');
-        if (clientSession && !user) {
-            setUser(JSON.parse(clientSession));
-        }
 
         return () => subscription.unsubscribe();
     }, []);

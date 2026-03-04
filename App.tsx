@@ -40,8 +40,19 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: UserR
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // Se o usuário for um cliente e tentar acessar algo FORA da área do cliente
+  if (user.role === UserRole.CLIENTE && !location.pathname.includes('area-cliente')) {
+    return <Navigate to="/area-cliente" replace />;
+  }
+
+  // Se o usuário for admin/colaborador e tentar acessar a área do cliente
+  if (user.role !== UserRole.CLIENTE && location.pathname.includes('area-cliente')) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     // Redirect logic based on role if access denied
+    if (user.role === UserRole.CLIENTE) return <Navigate to="/area-cliente" replace />;
     return <Navigate to={user.role === UserRole.ADMIN ? '/admin/colaboradores' : '/ponto'} replace />;
   }
 

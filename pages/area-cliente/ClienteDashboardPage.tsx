@@ -14,10 +14,25 @@ const ClienteDashboardPage: React.FC = () => {
     }, []);
 
     const fetchProjetos = async () => {
+        const currentUser = localStorage.getItem('app_session_client');
+        if (!currentUser) return;
+
+        const client = JSON.parse(currentUser);
         setLoading(true);
         try {
-            // Buscar projetos e dados financeiros via RPC ou join
-            // Como as tabelas podem ter RLS, vamos buscar diretamente
+            // Primeiro buscar o ID real do cliente vinculado ao auth_user_id
+            const { data: clienteData } = await supabase
+                .from('clientes')
+                .select('id')
+                .eq('auth_user_id', client.id)
+                .single();
+
+            if (!clienteData) {
+                setProjetos([]);
+                return;
+            }
+
+            // Agora buscar apenas os PROJETOS deste cliente na empresa correta
             const { data, error } = await supabase
                 .from('projetos')
                 .select(`
@@ -28,7 +43,9 @@ const ClienteDashboardPage: React.FC = () => {
                     numero_prestacoes,
                     projeto_parcelas (id, status),
                     contratos_gerados (arquivo_path)
-                `);
+                `)
+                .eq('cliente_id', clienteData.id)
+                .eq('empresa_id', client.empresaId);
 
             if (error) throw error;
 

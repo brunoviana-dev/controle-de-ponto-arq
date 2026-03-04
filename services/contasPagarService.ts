@@ -6,11 +6,14 @@ export const contasPagarService = {
     async getContasPorMes(mes: number, ano: number): Promise<ContaPagar[]> {
         const startDate = new Date(ano, mes - 1, 1).toISOString().split('T')[0];
         const endDate = new Date(ano, mes, 0).toISOString().split('T')[0];
+        const empresaId = getEmpresaAtualId();
+
+        console.log(`[getContasPorMes] Buscando: mes=${mes}, ano=${ano}, empresaId=${empresaId}`);
 
         const { data, error } = await supabase
             .from('contas_pagar')
             .select('*')
-            .eq('empresa_id', getEmpresaAtualId())
+            .eq('empresa_id', empresaId)
             .lte('data_vencimento', endDate)
             .or(`data_vencimento.gte.${startDate},recorrente.eq.true`)
             .order('data_vencimento', { ascending: true });

@@ -19,15 +19,34 @@ const ClienteProjetoDetailPage: React.FC = () => {
     }, [id]);
 
     const fetchProjetoDetails = async () => {
+        const currentUser = localStorage.getItem('app_session_client');
+        if (!currentUser || !id) return;
+
+        const client = JSON.parse(currentUser);
         setLoading(true);
         try {
-            // 1. Dados do Projeto
+            // 1. Verificar se o projeto pertence ao cliente logado
+            const { data: clienteData } = await supabase
+                .from('clientes')
+                .select('id')
+                .eq('auth_user_id', client.id)
+                .single();
+
+            if (!clienteData) throw new Error('Cliente não encontrado');
+
             const { data: projData, error: projError } = await supabase
                 .from('projetos')
                 .select('*')
                 .eq('id', id)
+                .eq('cliente_id', clienteData.id)
                 .single();
-            if (projError) throw projError;
+
+            if (projError || !projData) {
+                console.error('Projeto não encontrado ou acesso negado');
+                setProjeto(null);
+                setLoading(false);
+                return;
+            }
             setProjeto(projData);
 
             // 2. Parcelas
@@ -127,10 +146,10 @@ const ClienteProjetoDetailPage: React.FC = () => {
                                 <tbody className="divide-y divide-slate-700">
                                     {parcelas.map(p => (
                                         <tr key={p.id} className="hover:bg-slate-800/30 transition-colors">
-                                            <td className="px-6 py-4 text-white font-medium">{p.numeroParcela}</td>
-                                            <td className="px-6 py-4 text-white">{formatCurrency(p.valorParcela)}</td>
+                                            <td className="px-6 py-4 text-white font-medium">{(p as any).numero_parcela}</td>
+                                            <td className="px-6 py-4 text-white">{formatCurrency((p as any).valor_parcela)}</td>
                                             <td className="px-6 py-4 text-slate-300">
-                                                {p.dataVencimento ? formatDate(p.dataVencimento) : 'A definir'}
+                                                {(p as any).data_vencimento ? formatDate((p as any).data_vencimento) : 'A definir'}
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${p.status === 'recebido' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
@@ -159,11 +178,11 @@ const ClienteProjetoDetailPage: React.FC = () => {
                             </div>
                             <div className="flex justify-between items-center text-sm">
                                 <span className="text-slate-400">Forma de Pagamento</span>
-                                <span className="text-white">{projeto.formaPagamento || 'Não informada'}</span>
+                                <span className="text-white">{(projeto as any).forma_pagamento || 'Não informada'}</span>
                             </div>
                             <div className="flex justify-between items-center text-sm">
                                 <span className="text-slate-400">Total de Parcelas</span>
-                                <span className="text-white">{projeto.numeroPrestacoes}</span>
+                                <span className="text-white">{(projeto as any).numero_prestacoes}</span>
                             </div>
                         </div>
                     </section>
