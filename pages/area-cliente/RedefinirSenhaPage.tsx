@@ -17,17 +17,55 @@ const RedefinirSenhaPage: React.FC = () => {
         let timer: any = null;
 
         const checkSession = async () => {
+            // 1. Tentar capturar o token manualmente da URL
+            const fullHash = window.location.hash; // #access_token=...
+            if (fullHash.includes('access_token=')) {
+                console.log('Token detectado na URL');
+                setMessage({ type: 'info', text: 'Validando link de acesso...' });
+
+                // Extrair os parâmetros da parte que vem após o segundo # ou do que parece ser query
+                const hashParts = fullHash.split('#');
+                const tokenPart = hashParts.find(p => p.includes('access_token='));
+
+                if (tokenPart) {
+                    const params = new URLSearchParams(tokenPart.startsWith('?') ? tokenPart : '?' + tokenPart);
+                    const accessToken = params.get('access_token');
+                    const refreshToken = params.get('refresh_token');
+
+                    if (accessToken && refreshToken) {
+                        try {
+                            const { error } = await supabase.auth.setSession({
+                                access_token: accessToken,
+                                refresh_token: refreshToken
+                            });
+                            if (!error) {
+                                console.log('Sessão definida manualmente com sucesso');
+                                setMessage(null);
+                                return;
+                            }
+                        } catch (e) {
+                            console.error('Erro ao definir sessão manual:', e);
+                        }
+                    }
+                }
+            }
+
+            // 2. Tentar pegar sessão já processada automaticamente
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
                 setMessage(null);
                 return;
             }
 
+            // 3. Monitorar mudanças de estado
             const { data } = supabase.auth.onAuthStateChange((event, session) => {
-                if (session) setMessage(null);
+                if (session || event === 'PASSWORD_RECOVERY') {
+                    setMessage(null);
+                }
             });
             subscription = data.subscription;
 
+            // 4. Timeout de segurança
             timer = setTimeout(async () => {
                 const { data: { session: finalSession } } = await supabase.auth.getSession();
                 if (!finalSession) {
@@ -35,8 +73,10 @@ const RedefinirSenhaPage: React.FC = () => {
                         type: 'error',
                         text: 'Link de redefinição inválido ou expirado. Por favor, solicite um novo link.'
                     });
+                } else {
+                    setMessage(null);
                 }
-            }, 5000);
+            }, 8000); // 8 segundos para garantir
         };
 
         checkSession();

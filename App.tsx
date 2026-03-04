@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { UserRole } from './services/interfaces/types';
 import Login from './pages/Login';
 import DashboardLayout from './components/DashboardLayout';
@@ -64,7 +64,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: UserR
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <HashRouter>
+      <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/briefing/:slug" element={<BriefingPage />} />
@@ -152,7 +152,7 @@ const App: React.FC = () => {
 
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
-      </HashRouter>
+      </BrowserRouter>
     </AuthProvider>
   );
 };

@@ -15,7 +15,7 @@ const EsqueciSenhaPage: React.FC = () => {
 
         try {
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: `${window.location.origin}/#/area-cliente/redefinir-senha`,
+                redirectTo: `${window.location.origin}/area-cliente/redefinir-senha`,
             });
 
             if (error) throw error;
