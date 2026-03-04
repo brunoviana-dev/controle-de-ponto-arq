@@ -114,10 +114,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const signOut = async () => {
-        await supabase.auth.signOut();
-        logout();
-        localStorage.removeItem('app_session_client');
-        setUser(null);
+        try {
+            // Força saída no supabase mas não deixa travar a UI se demorar
+            const signOutPromise = supabase.auth.signOut();
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('timeout')), 2000)
+            );
+            await Promise.race([signOutPromise, timeoutPromise]);
+        } catch (e) {
+            console.warn('Supabase signOut demorou ou falhou, continuando limpeza local...');
+        } finally {
+            localStorage.removeItem('app_session');
+            localStorage.removeItem('app_session_client');
+            logout(); // Remove do localStorage via serviço legado se houver
+            setUser(null);
+
+            // Força recarregamento do estado da auth pra garantir limpeza de cache do client
+            window.sessionStorage.clear();
+        }
     };
 
     return (

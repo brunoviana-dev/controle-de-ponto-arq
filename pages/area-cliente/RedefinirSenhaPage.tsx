@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 
@@ -8,19 +8,34 @@ const RedefinirSenhaPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null);
     const navigate = useNavigate();
+    const initAttempted = useRef(false);
 
     useEffect(() => {
-        // Tenta apenas uma vez extrair e configurar a sessão
-        const params = new URLSearchParams(window.location.hash.substring(1) || window.location.search.substring(1));
-        const accessToken = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
+        if (initAttempted.current) return;
+        initAttempted.current = true;
 
-        if (accessToken && refreshToken) {
-            supabase.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken
-            }).catch(console.error);
-        }
+        const setup = async () => {
+            const hash = window.location.hash.substring(1);
+            const search = window.location.search.substring(1);
+            const params = new URLSearchParams(hash || search);
+            const accessToken = params.get('access_token');
+            const refreshToken = params.get('refresh_token');
+
+            if (accessToken && refreshToken) {
+                try {
+                    // Tenta setar com timeout curto para não travar
+                    const setSessionPromise = supabase.auth.setSession({
+                        access_token: accessToken,
+                        refresh_token: refreshToken
+                    });
+                    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000));
+                    await Promise.race([setSessionPromise, timeout]);
+                } catch (e) {
+                    console.warn('Configuração inicial da sessão demorou, isso é OK se você digitar a senha e clicar em salvar.');
+                }
+            }
+        };
+        setup();
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -31,51 +46,54 @@ const RedefinirSenhaPage: React.FC = () => {
             return;
         }
 
-        setLoading(true);
-        setMessage({ type: 'info', text: 'Processando alteração...' });
+        if (password.length < 6) {
+            setMessage({ type: 'error', text: 'Senha muito curta. Mínimo 6 caracteres.' });
+            return;
+        }
 
-        // Timer de segurança para não travar a UI
-        const timeout = setTimeout(() => {
-            if (loading) {
-                setLoading(false);
-                setMessage({ type: 'error', text: 'A operação demorou muito. Por favor, tente clicar em salvar novamente.' });
-            }
-        }, 15000);
+        setLoading(true);
+        setMessage({ type: 'info', text: 'Processando alteração de senha...' });
 
         try {
-            // Garante que o usuário está autenticado pelo link
-            const { data: { session } } = await supabase.auth.getSession();
+            // 1. Garantir sessão via tokens da URL caso getSession falhe
+            const hash = window.location.hash.substring(1);
+            const search = window.location.search.substring(1);
+            const params = new URLSearchParams(hash || search);
+            const accessToken = params.get('access_token');
+            const refreshToken = params.get('refresh_token');
 
-            if (!session) {
-                const params = new URLSearchParams(window.location.hash.substring(1) || window.location.search.substring(1));
-                const accessToken = params.get('access_token');
-                const refreshToken = params.get('refresh_token');
+            if (accessToken && refreshToken) {
+                // Força um login rápido se necessário
+                await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+            }
 
-                if (accessToken && refreshToken) {
-                    await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+            // 2. Atualizar o usuário
+            const updatePromise = supabase.auth.updateUser({ password });
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('A operação demorou demais. Tente clicar em salvar uma última vez.')), 10000)
+            );
+
+            const { error } = await Promise.race([updatePromise, timeoutPromise]) as any;
+
+            if (error) {
+                // Se o erro for o tal do 'aborted' ou algo similar, tenta uma vez silenciosa sem race
+                if (error.message?.includes('aborted')) {
+                    const { error: finalTryError } = await supabase.auth.updateUser({ password });
+                    if (finalTryError) throw finalTryError;
                 } else {
-                    throw new Error('Link de acesso não detectado. Peça um novo link.');
+                    throw error;
                 }
             }
 
-            const { error } = await supabase.auth.updateUser({ password });
-            clearTimeout(timeout);
-
-            if (error) throw error;
-
-            setMessage({ type: 'success', text: 'Senha alterada com sucesso!' });
+            setMessage({ type: 'success', text: 'Senha alterada com sucesso! Redirecionando...' });
             setTimeout(() => navigate('/area-cliente/login'), 2000);
 
         } catch (err: any) {
-            clearTimeout(timeout);
-            console.error('Falha geral:', err);
-
-            let errorText = err.message || 'Erro de conexão.';
-            if (errorText.includes('aborted')) {
-                errorText = 'A conexão foi interrompida. Clique em salvar novamente para concluir.';
-            }
-
-            setMessage({ type: 'error', text: 'Falha: ' + errorText });
+            console.error('Erro ao redefinir:', err);
+            setMessage({
+                type: 'error',
+                text: 'Falha: ' + (err.message || 'Tente solicitar um novo link pelo e-mail se este erro persistir.')
+            });
             setLoading(false);
         }
     };
@@ -84,8 +102,8 @@ const RedefinirSenhaPage: React.FC = () => {
         <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
             <div className="w-full max-w-md bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700">
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-white mb-2">Nova Senha</h1>
-                    <p className="text-slate-400">Insira sua nova senha de acesso</p>
+                    <h1 className="text-2xl font-bold text-white mb-2">Defina sua nova senha</h1>
+                    <p className="text-slate-400 text-sm">Seu formulário está pronto para uso.</p>
                 </div>
 
                 {message && (
@@ -97,42 +115,39 @@ const RedefinirSenhaPage: React.FC = () => {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-4">
                     <input
                         type="password"
                         placeholder="Nova Senha"
                         required
-                        disabled={loading && !message}
-                        className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white outline-none focus:border-blue-500 transition-all"
+                        className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white outline-none focus:border-blue-500 transition-all font-mono"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                     />
                     <input
                         type="password"
-                        placeholder="Confirmar Nova Senha"
+                        placeholder="Confirmar Senha"
                         required
-                        disabled={loading && !message}
-                        className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white outline-none focus:border-blue-500 transition-all"
+                        className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white outline-none focus:border-blue-500 transition-all font-mono"
                         value={confirmPassword}
                         onChange={e => setConfirmPassword(e.target.value)}
                     />
+
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all disabled:opacity-50"
+                        className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-900/40 transition-all disabled:opacity-50"
                     >
-                        {loading ? 'Salvando...' : 'Salvar Alteração'}
+                        {loading ? 'Redefinindo...' : 'Redefinir Senha agora'}
                     </button>
 
-                    {!loading && (
-                        <button
-                            type="button"
-                            onClick={() => navigate('/area-cliente/login')}
-                            className="w-full text-center text-sm text-slate-500 hover:text-slate-300"
-                        >
-                            Cancelar e voltar
-                        </button>
-                    )}
+                    <button
+                        type="button"
+                        onClick={() => navigate('/area-cliente/login')}
+                        className="w-full text-center text-xs text-slate-500 hover:text-slate-300"
+                    >
+                        Voltar para o Login
+                    </button>
                 </form>
             </div>
         </div>
