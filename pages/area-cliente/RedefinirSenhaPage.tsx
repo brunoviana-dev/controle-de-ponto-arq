@@ -6,34 +6,29 @@ const RedefinirSenhaPage: React.FC = () => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+    const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>({
+        type: 'info',
+        text: 'Validando link de acesso...'
+    });
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Verificar se há uma sessão ativa (vinda do link do e-mail)
-        const checkSession = async () => {
-            // Dar um tempo curto para o Supabase processar os tokens da URL
-            const { data: { session } } = await supabase.auth.getSession();
+        let subscription: any = null;
+        let timer: any = null;
 
+        const checkSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
             if (session) {
-                console.log('Sessão de redefinição detectada');
+                setMessage(null);
                 return;
             }
 
-            // Se não houver sessão imediata, escutar mudanças (pode demorar alguns milissegundos)
-            const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-                if (event === 'PASSWORD_RECOVERY' || session) {
-                    setMessage(null);
-                } else if (!session) {
-                    setMessage({
-                        type: 'error',
-                        text: 'Link de redefinição inválido ou expirado. Por favor, solicite um novo link.'
-                    });
-                }
+            const { data } = supabase.auth.onAuthStateChange((event, session) => {
+                if (session) setMessage(null);
             });
+            subscription = data.subscription;
 
-            // Timeout de segurança se nada acontecer
-            setTimeout(async () => {
+            timer = setTimeout(async () => {
                 const { data: { session: finalSession } } = await supabase.auth.getSession();
                 if (!finalSession) {
                     setMessage({
@@ -41,11 +36,15 @@ const RedefinirSenhaPage: React.FC = () => {
                         text: 'Link de redefinição inválido ou expirado. Por favor, solicite um novo link.'
                     });
                 }
-                subscription.unsubscribe();
-            }, 2000);
+            }, 5000);
         };
 
         checkSession();
+
+        return () => {
+            if (subscription) subscription.unsubscribe();
+            if (timer) clearTimeout(timer);
+        };
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -100,7 +99,9 @@ const RedefinirSenhaPage: React.FC = () => {
                 {message && (
                     <div className={`mb-6 p-4 rounded-lg text-sm text-center border ${message.type === 'success'
                         ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400'
-                        : 'bg-red-500/10 border-red-500/50 text-red-500'
+                        : message.type === 'info'
+                            ? 'bg-blue-500/10 border-blue-500/50 text-blue-400'
+                            : 'bg-red-500/10 border-red-500/50 text-red-500'
                         }`}>
                         {message.text}
                     </div>
