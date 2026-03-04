@@ -17,36 +17,28 @@ const RedefinirSenhaPage: React.FC = () => {
         let timer: any = null;
 
         const checkSession = async () => {
-            // 1. Tentar capturar o token manualmente da URL
-            const fullHash = window.location.hash; // #access_token=...
-            if (fullHash.includes('access_token=')) {
-                console.log('Token detectado na URL');
-                setMessage({ type: 'info', text: 'Validando link de acesso...' });
+            // 1. Tentar capturar o token da URL (pode vir no hash # ou na query ?)
+            const hash = window.location.hash.substring(1);
+            const search = window.location.search.substring(1);
+            const params = new URLSearchParams(hash || search);
 
-                // Extrair os parâmetros da parte que vem após o segundo # ou do que parece ser query
-                const hashParts = fullHash.split('#');
-                const tokenPart = hashParts.find(p => p.includes('access_token='));
+            const accessToken = params.get('access_token');
+            const refreshToken = params.get('refresh_token');
 
-                if (tokenPart) {
-                    const params = new URLSearchParams(tokenPart.startsWith('?') ? tokenPart : '?' + tokenPart);
-                    const accessToken = params.get('access_token');
-                    const refreshToken = params.get('refresh_token');
-
-                    if (accessToken && refreshToken) {
-                        try {
-                            const { error } = await supabase.auth.setSession({
-                                access_token: accessToken,
-                                refresh_token: refreshToken
-                            });
-                            if (!error) {
-                                console.log('Sessão definida manualmente com sucesso');
-                                setMessage(null);
-                                return;
-                            }
-                        } catch (e) {
-                            console.error('Erro ao definir sessão manual:', e);
-                        }
+            if (accessToken && refreshToken) {
+                console.log('Token detectado na URL, definindo sessão...');
+                try {
+                    const { error } = await supabase.auth.setSession({
+                        access_token: accessToken,
+                        refresh_token: refreshToken
+                    });
+                    if (!error) {
+                        console.log('Sessão definida com sucesso');
+                        setMessage(null);
+                        return;
                     }
+                } catch (e) {
+                    console.error('Erro ao definir sessão manual:', e);
                 }
             }
 
@@ -59,7 +51,7 @@ const RedefinirSenhaPage: React.FC = () => {
 
             // 3. Monitorar mudanças de estado
             const { data } = supabase.auth.onAuthStateChange((event, session) => {
-                if (session || event === 'PASSWORD_RECOVERY') {
+                if (session) {
                     setMessage(null);
                 }
             });
@@ -76,7 +68,7 @@ const RedefinirSenhaPage: React.FC = () => {
                 } else {
                     setMessage(null);
                 }
-            }, 8000); // 8 segundos para garantir
+            }, 5000); // Reduzido para 5s
         };
 
         checkSession();
