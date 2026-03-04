@@ -18,8 +18,8 @@ export const login = async (login: string, pass: string): Promise<User> => {
         throw new Error('Credenciais inválidas');
     }
 
-    // Determinar role: admin se login for 'admin', caso contrário colaborador
-    const role = colaborador.login === 'admin' ? UserRole.ADMIN : UserRole.COLABORADOR;
+    // Determinar role baseado no campo perfil
+    const role = colaborador.perfil === 'admin' ? UserRole.ADMIN : UserRole.COLABORADOR;
 
     const user: User = {
         id: colaborador.id,
@@ -27,6 +27,7 @@ export const login = async (login: string, pass: string): Promise<User> => {
         login: colaborador.login,
         email: colaborador.email,
         role: role,
+        empresaId: colaborador.empresa_id,
         token: colaborador.id
     };
 

@@ -29,8 +29,8 @@ const TimesheetPage: React.FC<TimesheetPageProps> = ({ adminView }) => {
     const init = async () => {
       if (adminView) {
         const colabs = await getColaboradores();
-        // Filtrar admin da lista de colaboradores
-        const colaboradoresFiltrados = colabs.filter(c => c.login !== 'admin');
+        // Filtrar admin da lista de colaboradores (pelo novo campo perfil)
+        const colaboradoresFiltrados = colabs.filter(c => c.perfil !== 'admin');
         setColaboradores(colaboradoresFiltrados);
         if (colaboradoresFiltrados.length > 0) setSelectedColabId(colaboradoresFiltrados[0].id);
       } else if (user) {

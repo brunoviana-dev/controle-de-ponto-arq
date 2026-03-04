@@ -10,6 +10,7 @@ export interface User {
   login: string;
   role: UserRole;
   email?: string;
+  empresaId: string;
   token?: string; // Mock token
 }
 
@@ -21,6 +22,7 @@ export interface Colaborador {
   valorHora: number;
   valorInssFixo?: number;
   login: string;
+  perfil: 'admin' | 'usuario';
   senha?: string; // Only used for creation/auth check, not returned in lists ideally
   createdAt: string;
 }

@@ -25,12 +25,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             if (session?.user) {
                 // Se temos uma sessão do Supabase e não há admin logado, é um cliente
+                // Buscar dados do cliente no banco para pegar a empresa_id
+                const { data: dbCliente } = await supabase
+                    .from('clientes')
+                    .select('empresa_id')
+                    .eq('auth_user_id', session.user.id)
+                    .single();
+
                 const clientUser: User = {
                     id: session.user.id,
                     name: session.user.user_metadata?.full_name || session.user.email || 'Cliente',
                     login: session.user.email || '',
                     role: UserRole.CLIENTE,
-                    email: session.user.email
+                    email: session.user.email,
+                    empresaId: dbCliente?.empresa_id || ''
                 };
                 setUser(clientUser);
                 localStorage.setItem('app_session_client', JSON.stringify(clientUser));

@@ -8,7 +8,7 @@ import { getEmpresaAtualId } from '../utils/config';
 export const getColaboradores = async (): Promise<Colaborador[]> => {
     const { data, error } = await supabase
         .from('colaboradores')
-        .select('id, nome, email, telefone, valor_hora, valor_inss_fixo, login, created_at')
+        .select('id, nome, email, telefone, valor_hora, valor_inss_fixo, login, perfil, created_at')
         .eq('empresa_id', getEmpresaAtualId())
         .order('nome');
 
@@ -25,6 +25,7 @@ export const getColaboradores = async (): Promise<Colaborador[]> => {
         valorHora: c.valor_hora,
         valorInssFixo: c.valor_inss_fixo,
         login: c.login,
+        perfil: c.perfil,
         createdAt: c.created_at
     }));
 };
@@ -35,7 +36,7 @@ export const getColaboradores = async (): Promise<Colaborador[]> => {
 export const getColaboradorById = async (id: string): Promise<Colaborador | undefined> => {
     const { data, error } = await supabase
         .from('colaboradores')
-        .select('id, nome, email, telefone, valor_hora, valor_inss_fixo, login, created_at')
+        .select('id, nome, email, telefone, valor_hora, valor_inss_fixo, login, perfil, created_at')
         .eq('id', id)
         .eq('empresa_id', getEmpresaAtualId())
         .single();
@@ -52,6 +53,7 @@ export const getColaboradorById = async (id: string): Promise<Colaborador | unde
         valorHora: data.valor_hora,
         valorInssFixo: data.valor_inss_fixo,
         login: data.login,
+        perfil: data.perfil,
         createdAt: data.created_at
     };
 };
@@ -68,7 +70,8 @@ export const saveColaborador = async (colab: Partial<Colaborador>): Promise<void
             telefone: colab.telefone,
             valor_hora: colab.valorHora,
             valor_inss_fixo: colab.valorInssFixo || 0,
-            login: colab.login
+            login: colab.login,
+            perfil: colab.perfil || 'usuario'
         };
 
         // Só atualizar senha se foi fornecida
@@ -96,6 +99,7 @@ export const saveColaborador = async (colab: Partial<Colaborador>): Promise<void
                 valor_hora: colab.valorHora,
                 valor_inss_fixo: colab.valorInssFixo || 0,
                 login: colab.login,
+                perfil: colab.perfil || 'usuario',
                 senha_hash: colab.senha || 'senha123', // Em produção, usar bcrypt
                 empresa_id: getEmpresaAtualId()
             });

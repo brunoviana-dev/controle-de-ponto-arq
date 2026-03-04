@@ -31,6 +31,7 @@ const CollaboratorsPage: React.FC = () => {
         valorHora: 0,
         valorInssFixo: 0,
         login: '',
+        perfil: 'usuario',
         senha: ''
       });
     }
@@ -51,6 +52,41 @@ const CollaboratorsPage: React.FC = () => {
       await deleteColaborador(id);
       fetchColaboradores();
     }
+  };
+
+  const handleCurrencyChange = (value: string, field: 'valorHora' | 'valorInssFixo') => {
+    // Remove tudo que não é dígito
+    const digits = value.replace(/\D/g, '');
+    const numberValue = digits ? parseInt(digits) / 100 : 0;
+    setEditingColab({ ...editingColab, [field]: numberValue });
+  };
+
+  const displayCurrency = (value?: number) => {
+    if (value === undefined || value === 0) return 'R$ 0,00';
+    return new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 2,
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+
+  const handlePhoneChange = (value: string) => {
+    // Remove tudo que não é dígito
+    const digits = value.replace(/\D/g, '');
+
+    // Aplica a máscara (XX) XXXXX-XXXX ou (XX) XXXX-XXXX
+    let formatted = digits;
+    if (digits.length > 0) {
+      formatted = `(${digits.slice(0, 2)}`;
+    }
+    if (digits.length > 2) {
+      formatted += `) ${digits.slice(2, 7)}`;
+    }
+    if (digits.length > 7) {
+      formatted += `-${digits.slice(7, 11)}`;
+    }
+
+    setEditingColab({ ...editingColab, telefone: formatted.slice(0, 15) });
   };
 
   return (
@@ -79,6 +115,7 @@ const CollaboratorsPage: React.FC = () => {
                   <th className="px-6 py-4">Nome</th>
                   <th className="px-6 py-4">Contato</th>
                   <th className="px-6 py-4">Valor/Hora</th>
+                  <th className="px-6 py-4">Perfil</th>
                   <th className="px-6 py-4">Login</th>
                   <th className="px-6 py-4 text-right">Ações</th>
                 </tr>
@@ -86,7 +123,7 @@ const CollaboratorsPage: React.FC = () => {
               <tbody className="divide-y divide-slate-700">
                 {colaboradores.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                    <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
                       Nenhum colaborador cadastrado.
                     </td>
                   </tr>
@@ -101,6 +138,11 @@ const CollaboratorsPage: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-accent">{formatCurrency(colab.valorHora)}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-bold ${colab.perfil === 'admin' ? 'bg-primary/20 text-primary' : 'bg-slate-700 text-slate-400'}`}>
+                          {colab.perfil || 'usuario'}
+                        </span>
+                      </td>
                       <td className="px-6 py-4">{colab.login}</td>
                       <td className="px-6 py-4 text-right space-x-2">
                         <button
@@ -159,30 +201,29 @@ const CollaboratorsPage: React.FC = () => {
                   <input
                     type="text"
                     required
+                    maxLength={15}
                     className="w-full bg-background border border-slate-600 rounded p-2 text-white focus:border-primary outline-none"
                     value={editingColab.telefone || ''}
-                    onChange={e => setEditingColab({ ...editingColab, telefone: e.target.value })}
+                    onChange={e => handlePhoneChange(e.target.value)}
                   />
                 </div>
                 <div>
                   <label className="block text-xs text-slate-400 mb-1">Valor Hora (R$)</label>
                   <input
-                    type="number"
-                    step="0.01"
+                    type="text"
                     required
                     className="w-full bg-background border border-slate-600 rounded p-2 text-white focus:border-primary outline-none"
-                    value={editingColab.valorHora || ''}
-                    onChange={e => setEditingColab({ ...editingColab, valorHora: parseFloat(e.target.value) })}
+                    value={displayCurrency(editingColab.valorHora)}
+                    onChange={e => handleCurrencyChange(e.target.value, 'valorHora')}
                   />
                 </div>
                 <div>
                   <label className="block text-xs text-slate-400 mb-1">Valor INSS Mensal (R$)</label>
                   <input
-                    type="number"
-                    step="0.01"
+                    type="text"
                     className="w-full bg-background border border-slate-600 rounded p-2 text-white focus:border-primary outline-none"
-                    value={editingColab.valorInssFixo || 0}
-                    onChange={e => setEditingColab({ ...editingColab, valorInssFixo: parseFloat(e.target.value) })}
+                    value={displayCurrency(editingColab.valorInssFixo)}
+                    onChange={e => handleCurrencyChange(e.target.value, 'valorInssFixo')}
                   />
                 </div>
               </div>
@@ -199,6 +240,17 @@ const CollaboratorsPage: React.FC = () => {
                       value={editingColab.login || ''}
                       onChange={e => setEditingColab({ ...editingColab, login: e.target.value })}
                     />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">Perfil</label>
+                    <select
+                      className="w-full bg-background border border-slate-600 rounded p-2 text-white focus:border-primary outline-none"
+                      value={editingColab.perfil || 'usuario'}
+                      onChange={e => setEditingColab({ ...editingColab, perfil: e.target.value as 'admin' | 'usuario' })}
+                    >
+                      <option value="usuario">Usuário</option>
+                      <option value="admin">Administrador</option>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-xs text-slate-400 mb-1">Senha</label>
