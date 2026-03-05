@@ -38,28 +38,44 @@ export const normalizarOpcoes = (opcoes: any[] | undefined | null): BriefingOpca
 export const briefingPerguntasService = {
     async getPerguntas(empresaIdOverride?: string): Promise<BriefingPergunta[]> {
         const empresaId = empresaIdOverride || getEmpresaAtualId();
-        const { data, error } = await supabase
+
+        // Busca as perguntas
+        const { data: perguntas, error: pError } = await supabase
             .from('briefing_perguntas')
             .select('*')
             .eq('empresa_id', empresaId)
             .order('ordem', { ascending: true });
 
-        if (error) {
-            console.error('Erro ao buscar perguntas do briefing:', error);
-            throw error;
+        if (pError) {
+            console.error('Erro ao buscar perguntas do briefing:', pError);
+            throw pError;
         }
 
-        // Normalização automática para compatibilidade
-        return (data || []).map(p => ({
+        // Busca as associações com tipos de projeto
+        const { data: associacoes, error: aError } = await supabase
+            .from('briefing_perguntas_tipos_projeto')
+            .select('pergunta_id, tipo_projeto_id');
+
+        if (aError) {
+            console.error('Erro ao buscar associações de tipos de projeto:', aError);
+        }
+
+        // Mapeia os IDs para as perguntas
+        return (perguntas || []).map(p => ({
             ...p,
-            opcoes: normalizarOpcoes(p.opcoes)
+            opcoes: normalizarOpcoes(p.opcoes),
+            tipo_projeto_ids: associacoes
+                ?.filter(a => a.pergunta_id === p.id)
+                .map(a => a.tipo_projeto_id) || []
         }));
     },
 
     async createPergunta(pergunta: Omit<BriefingPergunta, 'id' | 'created_at'>): Promise<BriefingPergunta> {
+        const { tipo_projeto_ids, ...dadosPergunta } = pergunta;
+
         const { data, error } = await supabase
             .from('briefing_perguntas')
-            .insert([{ ...pergunta, empresa_id: getEmpresaAtualId() }])
+            .insert([{ ...dadosPergunta, empresa_id: getEmpresaAtualId() }])
             .select()
             .single();
 
@@ -68,16 +84,28 @@ export const briefingPerguntasService = {
             throw error;
         }
 
+        // Salva as associações se houver
+        if (tipo_projeto_ids && tipo_projeto_ids.length > 0) {
+            const inserts = tipo_projeto_ids.map(tipoId => ({
+                pergunta_id: data.id,
+                tipo_projeto_id: tipoId
+            }));
+            await supabase.from('briefing_perguntas_tipos_projeto').insert(inserts);
+        }
+
         return {
             ...data,
-            opcoes: normalizarOpcoes(data.opcoes)
+            opcoes: normalizarOpcoes(data.opcoes),
+            tipo_projeto_ids: tipo_projeto_ids || []
         };
     },
 
     async updatePergunta(id: string, pergunta: Partial<Omit<BriefingPergunta, 'id' | 'created_at'>>): Promise<BriefingPergunta> {
+        const { tipo_projeto_ids, ...dadosPergunta } = pergunta;
+
         const { data, error } = await supabase
             .from('briefing_perguntas')
-            .update(pergunta)
+            .update(dadosPergunta)
             .eq('id', id)
             .eq('empresa_id', getEmpresaAtualId())
             .select()
@@ -88,9 +116,26 @@ export const briefingPerguntasService = {
             throw error;
         }
 
+        // Atualiza as associações (Remove antigas e insere novas)
+        if (tipo_projeto_ids !== undefined) {
+            await supabase
+                .from('briefing_perguntas_tipos_projeto')
+                .delete()
+                .eq('pergunta_id', id);
+
+            if (tipo_projeto_ids.length > 0) {
+                const inserts = tipo_projeto_ids.map(tipoId => ({
+                    pergunta_id: id,
+                    tipo_projeto_id: tipoId
+                }));
+                await supabase.from('briefing_perguntas_tipos_projeto').insert(inserts);
+            }
+        }
+
         return {
             ...data,
-            opcoes: normalizarOpcoes(data.opcoes)
+            opcoes: normalizarOpcoes(data.opcoes),
+            tipo_projeto_ids: tipo_projeto_ids || []
         };
     },
 

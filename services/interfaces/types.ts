@@ -222,6 +222,7 @@ export interface BriefingPergunta {
   ordem: number;
   ativo: boolean;
   instagram: boolean;
+  tipo_projeto_ids?: string[]; // IDs dos tipos de projeto associados
   created_at?: string;
 }
 

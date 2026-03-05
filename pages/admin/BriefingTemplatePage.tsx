@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { BriefingOpcao, BriefingPergunta, PerguntaTipo } from '../../services/interfaces/types';
+import { BriefingOpcao, BriefingPergunta, PerguntaTipo, ProjetoTipo } from '../../services/interfaces/types';
 import { briefingPerguntasService } from '../../services/briefingPerguntasService';
+import * as projetoTiposService from '../../services/projetoTiposService';
 import ConfirmModal from '../../components/ConfirmModal';
 
 const BriefingTemplatePage: React.FC = () => {
     const [perguntas, setPerguntas] = useState<BriefingPergunta[]>([]);
+    const [tiposProjeto, setTiposProjeto] = useState<ProjetoTipo[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -20,7 +22,8 @@ const BriefingTemplatePage: React.FC = () => {
         ordem: 0,
         ativo: true,
         instagram: false,
-        opcoes: []
+        opcoes: [],
+        tipo_projeto_ids: []
     });
 
     const slugify = (text: string) => {
@@ -38,8 +41,12 @@ const BriefingTemplatePage: React.FC = () => {
     const fetchData = async (showLoading = true) => {
         try {
             if (showLoading) setLoading(true);
-            const data = await briefingPerguntasService.getPerguntas();
-            setPerguntas(data);
+            const [perguntasData, tiposData] = await Promise.all([
+                briefingPerguntasService.getPerguntas(),
+                projetoTiposService.getTiposAtivos()
+            ]);
+            setPerguntas(perguntasData);
+            setTiposProjeto(tiposData);
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -61,7 +68,8 @@ const BriefingTemplatePage: React.FC = () => {
                 ordem: pergunta.ordem,
                 ativo: pergunta.ativo,
                 instagram: pergunta.instagram,
-                opcoes: (pergunta.opcoes || []) as BriefingOpcao[]
+                opcoes: (pergunta.opcoes || []) as BriefingOpcao[],
+                tipo_projeto_ids: pergunta.tipo_projeto_ids || []
             });
         } else {
             setSelectedPergunta(null);
@@ -72,7 +80,8 @@ const BriefingTemplatePage: React.FC = () => {
                 ordem: perguntas.length > 0 ? Math.max(...perguntas.map(p => p.ordem)) + 10 : 10,
                 ativo: true,
                 instagram: false,
-                opcoes: []
+                opcoes: [],
+                tipo_projeto_ids: []
             });
         }
         setIsModalOpen(true);
@@ -455,6 +464,39 @@ const BriefingTemplatePage: React.FC = () => {
                                     />
                                     <span className="text-sm text-slate-300">Instagram</span>
                                 </label>
+                            </div>
+
+                            <div className="pt-4 border-t border-slate-700">
+                                <label className="block text-sm font-bold text-slate-300 uppercase tracking-wider mb-2">
+                                    Tipos de Projeto Associados
+                                </label>
+                                <p className="text-[10px] text-slate-500 mb-3 italic">Se nenhum tipo for selecionado, a pergunta aparecerá para todos os tipos.</p>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                    {tiposProjeto.map(tipo => (
+                                        <label
+                                            key={tipo.id}
+                                            className={`flex items-center gap-2 p-2 rounded border transition-colors cursor-pointer ${formData.tipo_projeto_ids?.includes(tipo.id)
+                                                ? 'bg-primary/10 border-primary text-primary'
+                                                : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                                                }`}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                className="hidden"
+                                                checked={formData.tipo_projeto_ids?.includes(tipo.id)}
+                                                onChange={(e) => {
+                                                    const currentIds = [...(formData.tipo_projeto_ids || [])];
+                                                    if (e.target.checked) {
+                                                        setFormData({ ...formData, tipo_projeto_ids: [...currentIds, tipo.id] });
+                                                    } else {
+                                                        setFormData({ ...formData, tipo_projeto_ids: currentIds.filter(id => id !== tipo.id) });
+                                                    }
+                                                }}
+                                            />
+                                            <span className="text-xs font-medium truncate">{tipo.nome}</span>
+                                        </label>
+                                    ))}
+                                </div>
                             </div>
 
                             {['select', 'radio', 'checkbox'].includes(formData.tipo as string) && (
