@@ -108,20 +108,22 @@ export const briefingPerguntasService = {
     },
 
     async uploadOpcaoImagem(file: File): Promise<string> {
+        const empresaId = getEmpresaAtualId();
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
-        const filePath = `opcoes/${fileName}`;
+        const filePath = `${empresaId}/opcoes/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-            .from('briefing-opcoes')
+            .from('briefing-imagens')
             .upload(filePath, file);
 
         if (uploadError) {
+            console.error('Erro no upload da imagem:', uploadError);
             throw uploadError;
         }
 
         const { data } = supabase.storage
-            .from('briefing-opcoes')
+            .from('briefing-imagens')
             .getPublicUrl(filePath);
 
         return data.publicUrl;

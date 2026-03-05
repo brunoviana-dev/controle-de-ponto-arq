@@ -88,11 +88,18 @@ const BriefingTemplatePage: React.FC = () => {
 
     const handleOptionChange = (index: number, field: keyof BriefingOpcao, value: any) => {
         const currentOpcoes = [...((formData.opcoes || []) as BriefingOpcao[])];
+        const oldLabel = currentOpcoes[index].label;
+        const oldValue = currentOpcoes[index].value;
+
         currentOpcoes[index] = { ...currentOpcoes[index], [field]: value };
 
-        // Auto-slugify value if label changes and value is empty or matches old label slug
-        if (field === 'label' && (!currentOpcoes[index].value || currentOpcoes[index].value === slugify(currentOpcoes[index].label))) {
-            // We'll update the value in a second pass if needed, but for now let's just update label
+        // Auto-slugify value if label changes
+        if (field === 'label') {
+            const newSlug = slugify(value);
+            // Só atualiza o value se ele estiver vazio ou se for o slug do label anterior
+            if (!oldValue || oldValue === slugify(oldLabel)) {
+                currentOpcoes[index].value = newSlug;
+            }
         }
 
         setFormData({ ...formData, opcoes: currentOpcoes });
@@ -277,7 +284,7 @@ const BriefingTemplatePage: React.FC = () => {
                             <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Pergunta</th>
                             <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Tipo</th>
                             <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Status</th>
-                            <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Obrig.</th>
+                            <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Obrig..</th>
                             <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Insta</th>
                             <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right w-40">Ações</th>
                         </tr>
