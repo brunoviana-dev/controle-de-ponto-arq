@@ -208,6 +208,30 @@ export const createProjeto = async (projeto: Omit<Projeto, 'id' | 'createdAt' | 
         await gerarParcelasAutomaticas(data.id, data.valor, data.numero_prestacoes, data.data_primeiro_vencimento);
     }
 
+    // Copiar etapas padrão do tipo de projeto, se houver
+    if (data.projeto_tipo_id) {
+        const { data: etapasPadrao, error: errorEtapas } = await supabase
+            .from('projeto_tipo_etapas')
+            .select('*')
+            .eq('projeto_tipo_id', data.projeto_tipo_id)
+            .eq('empresa_id', getEmpresaAtualId())
+            .order('ordem', { ascending: true });
+
+        if (!errorEtapas && etapasPadrao && etapasPadrao.length > 0) {
+            const novasEtapas = etapasPadrao.map(ep => ({
+                projeto_id: data.id,
+                nome_etapa: ep.nome_etapa,
+                ordem: ep.ordem,
+                status: 'nao_iniciado',
+                empresa_id: getEmpresaAtualId()
+            }));
+
+            await supabase
+                .from('projeto_etapas')
+                .insert(novasEtapas);
+        }
+    }
+
     return {
         id: data.id,
         clienteId: data.cliente_id,
