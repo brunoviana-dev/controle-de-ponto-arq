@@ -108,17 +108,25 @@ export const saveColaborador = async (colab: Partial<Colaborador>): Promise<void
 
     // 2. Gerenciar Autenticação no Supabase Auth
     if (colab.email && (colab.senha || !colab.id)) {
-        const { error: authError } = await supabase.functions.invoke('manage-user-auth', {
-            body: {
-                email: colab.email,
-                password: colab.senha || 'senha123',
-                targetId: collaboratorId,
-                table: 'colaboradores'
-            }
-        });
+        try {
+            const { data, error: authError } = await supabase.functions.invoke('manage-user-auth', {
+                body: {
+                    email: colab.email,
+                    password: colab.senha || 'senha123',
+                    targetId: collaboratorId,
+                    table: 'colaboradores'
+                }
+            });
 
-        if (authError) {
-            console.error('Erro ao sincronizar com Supabase Auth:', authError);
+            if (authError || (data && data.error)) {
+                const errorMessage = authError?.message || data?.error || 'Erro desconhecido na autenticação';
+                console.error('Erro ao sincronizar com Supabase Auth:', errorMessage);
+                // Opcional: Você pode escolher lançar o erro aqui se quiser que a criação falhe 
+                // se a autenticação falhar. Por enquanto, apenas avisamos no console.
+                // throw new Error(`Colaborador salvo, mas erro no acesso: ${errorMessage}`);
+            }
+        } catch (err) {
+            console.error('Falha crítica ao chamar função de autenticação:', err);
         }
     }
 };

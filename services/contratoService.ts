@@ -49,6 +49,13 @@ export const gerarEUploadContrato = async (projetoId: string): Promise<string> =
     const etapas = await getEtapasByProjeto(projetoId);
     const parcelas = await getParcelasProjeto(projetoId);
 
+    // Buscar dados reais da empresa
+    const { data: empresa } = await supabase
+        .from('empresas')
+        .select('*')
+        .eq('id', getEmpresaAtualId())
+        .single();
+
     const content = await fileData.arrayBuffer();
     const zip = new PizZip(content);
     const doc = new Docxtemplater(zip, {
@@ -64,8 +71,13 @@ export const gerarEUploadContrato = async (projetoId: string): Promise<string> =
             cliente_documento: cliente?.cpf_cnpj || '',
             cliente_email: cliente?.email || '',
             cliente_telefone: cliente?.telefone || '',
-            empresa_nome: 'Nome da Empresa Exemplo',
-            empresa_cnpj: '00.000.000/0001-00',
+            empresa_nome: empresa?.razao_social || empresa?.nome_fantasia || 'Nome da Empresa',
+            empresa_cnpj: empresa?.cnpj || '',
+            empresa_email: empresa?.email || '',
+            empresa_telefone: empresa?.telefone || '',
+            empresa_endereco: `${empresa?.logradouro || ''}, ${empresa?.numero || ''} - ${empresa?.bairro || ''}, ${empresa?.cidade || ''}/${empresa?.estado || ''}`,
+            empresa_cidade: empresa?.cidade || '',
+            empresa_estado: empresa?.estado || '',
             projeto_nome: projeto.nome_projeto,
             projeto_endereco: projeto.endereco || '',
             tipo_projeto: projeto.tipo?.nome || '',
