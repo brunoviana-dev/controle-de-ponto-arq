@@ -78,6 +78,8 @@ export const gerarEUploadContrato = async (projetoId: string): Promise<string> =
             empresa_endereco: `${empresa?.logradouro || ''}, ${empresa?.numero || ''} - ${empresa?.bairro || ''}, ${empresa?.cidade || ''}/${empresa?.estado || ''}`,
             empresa_cidade: empresa?.cidade || '',
             empresa_estado: empresa?.estado || '',
+            responsavel_tecnico: empresa?.responsavel_tecnico || '',
+            registro_profissional: empresa?.registro_profissional || '',
             projeto_nome: projeto.nome_projeto,
             projeto_endereco: projeto.endereco || '',
             tipo_projeto: projeto.tipo?.nome || '',

@@ -14,6 +14,8 @@ const EmpresaPage: React.FC = () => {
         nome_fantasia: '',
         cnpj: '',
         inscricao_estadual: '',
+        responsavel_tecnico: '',
+        registro_profissional: '',
         email: '',
         telefone: '',
         cep: '',
@@ -233,6 +235,28 @@ const EmpresaPage: React.FC = () => {
                                     value={formData.inscricao_estadual}
                                     onChange={handleChange}
                                     placeholder="Se houver"
+                                    className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-primary focus:outline-none transition-all placeholder:text-slate-600"
+                                    autoComplete="off"
+                                />
+                            </div>
+                            <div className="md:col-span-1">
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Responsável Técnico</label>
+                                <input
+                                    name="responsavel_tecnico"
+                                    value={formData.responsavel_tecnico}
+                                    onChange={handleChange}
+                                    placeholder="Nome do Responsável"
+                                    className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-primary focus:outline-none transition-all placeholder:text-slate-600"
+                                    autoComplete="off"
+                                />
+                            </div>
+                            <div className="md:col-span-1">
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Registro Profissional</label>
+                                <input
+                                    name="registro_profissional"
+                                    value={formData.registro_profissional}
+                                    onChange={handleChange}
+                                    placeholder="CAU/CREA"
                                     className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-primary focus:outline-none transition-all placeholder:text-slate-600"
                                     autoComplete="off"
                                 />

@@ -253,6 +253,8 @@ export interface Empresa {
   nome_fantasia?: string;
   cnpj?: string;
   inscricao_estadual?: string;
+  responsavel_tecnico?: string;
+  registro_profissional?: string;
   email?: string;
   telefone?: string;
   cep?: string;
