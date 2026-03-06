@@ -235,6 +235,16 @@ const ReportsPage: React.FC = () => {
     }
   };
 
+  const totalFolhaPrevisto = reportData.reduce((acc, r) => acc + r.totalPagar, 0);
+  const totalFolhaPago = reportData.filter(r => r.statusPagamento === 'pago').reduce((acc, r) => acc + r.totalPagar, 0);
+
+  const totalContasPrevisto = contasPagar.reduce((acc, c) => acc + c.valor, 0);
+  const totalContasPago = pagamentosContas.reduce((acc, p) => acc + p.valor_pago, 0);
+
+  const totalGeralPrevisto = totalFolhaPrevisto + totalContasPrevisto;
+  const totalGeralPago = totalFolhaPago + totalContasPago;
+  const totalGeralAPagar = totalGeralPrevisto - totalGeralPago;
+
   return (
     <div className="space-y-6 relative">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -265,6 +275,32 @@ const ReportsPage: React.FC = () => {
           </select>
         </div>
       </div>
+
+      {!loading && (
+        <div className="bg-slate-800/80 border border-slate-700/50 rounded-xl p-4 shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-primary to-emerald-500"></div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 divide-y md:divide-y-0 md:divide-x divide-slate-700">
+            {/* Total Previsto */}
+            <div className="flex flex-col items-center justify-center">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-0.5">Total Previsto</span>
+              <span className="text-2xl font-bold text-white tracking-tight">{formatCurrency(totalGeralPrevisto)}</span>
+            </div>
+
+            {/* Total Pago */}
+            <div className="flex flex-col items-center justify-center pt-3 md:pt-0">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-0.5">Total Pago</span>
+              <span className="text-2xl font-bold text-emerald-400 tracking-tight">{formatCurrency(totalGeralPago)}</span>
+            </div>
+
+            {/* Total A Pagar */}
+            <div className="flex flex-col items-center justify-center pt-3 md:pt-0">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-0.5">Total a Pagar</span>
+              <span className="text-2xl font-bold text-rose-400 tracking-tight">{formatCurrency(Math.max(0, totalGeralAPagar))}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-20 text-slate-500">Calculando...</div>
