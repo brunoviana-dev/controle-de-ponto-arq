@@ -38,7 +38,7 @@ const BriefingPage: React.FC = () => {
         }
 
         return () => {
-            document.title = 'Controle de Ponto - Arquitetura';
+            document.title = 'Escritório de Arquitetura [UpSys Pro]';
         };
     }, [empresa]);
 
