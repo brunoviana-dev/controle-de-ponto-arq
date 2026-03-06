@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../services/interfaces/types';
+import ChangePasswordModal from './ChangePasswordModal';
 
 const DashboardLayout: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCPModalOpen, setIsCPModalOpen] = useState(false);
 
   const handleLogout = () => {
     signOut();
@@ -69,21 +71,38 @@ const DashboardLayout: React.FC = () => {
             )}
           </div>
           {!isCollapsed && (
-            <button
-              onClick={handleLogout}
-              className="w-full mt-3 flex items-center justify-center space-x-2 py-1.5 rounded-lg border border-slate-600/50 text-slate-400 hover:bg-slate-700 hover:text-white transition-all text-xs"
-            >
-              <span>Sair</span>
-            </button>
+            <div className="mt-3 flex flex-col gap-2">
+              <button
+                onClick={() => setIsCPModalOpen(true)}
+                className="w-full flex items-center justify-center space-x-2 py-1.5 rounded-lg border border-slate-600/50 text-slate-300 hover:bg-slate-700 hover:text-white transition-all text-xs"
+              >
+                <span>Alterar Senha</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center space-x-2 py-1.5 rounded-lg border border-slate-600/50 text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all text-xs"
+              >
+                <span>Sair</span>
+              </button>
+            </div>
           )}
           {isCollapsed && (
-            <button
-              onClick={handleLogout}
-              title="Sair"
-              className="w-full mt-3 flex items-center justify-center p-1.5 rounded-lg text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all"
-            >
-              <span>🚪</span>
-            </button>
+            <div className="mt-3 flex flex-col gap-2 items-center">
+              <button
+                onClick={() => setIsCPModalOpen(true)}
+                title="Alterar Senha"
+                className="w-10 h-10 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-all"
+              >
+                <span>🔑</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                title="Sair"
+                className="w-10 h-10 flex items-center justify-center rounded-lg text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all"
+              >
+                <span>🚪</span>
+              </button>
+            </div>
           )}
         </div>
 
@@ -160,6 +179,11 @@ const DashboardLayout: React.FC = () => {
       <main className="flex-1 overflow-auto p-4 md:p-8">
         <Outlet />
       </main>
+
+      <ChangePasswordModal
+        isOpen={isCPModalOpen}
+        onClose={() => setIsCPModalOpen(false)}
+      />
     </div>
   );
 };

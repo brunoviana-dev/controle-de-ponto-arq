@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import ChangePasswordModal from './ChangePasswordModal';
 
 const AreaClienteLayout: React.FC = () => {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
     const [isSidebarOpen, setSidebarOpen] = useState(false);
+    const [isCPModalOpen, setIsCPModalOpen] = useState(false);
 
     const handleLogout = () => {
         signOut();
@@ -57,12 +59,20 @@ const AreaClienteLayout: React.FC = () => {
                             <p className="text-xs text-slate-500 truncate">Cliente</p>
                         </div>
                     </div>
-                    <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center justify-center space-x-2 py-2 px-4 rounded-md border border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors text-sm"
-                    >
-                        <span>Sair</span>
-                    </button>
+                    <div className="flex flex-col gap-2">
+                        <button
+                            onClick={() => setIsCPModalOpen(true)}
+                            className="w-full flex items-center justify-center space-x-2 py-2 px-4 rounded-md border border-slate-600/50 text-slate-300 hover:bg-slate-700 hover:text-white transition-all text-xs"
+                        >
+                            <span>🔑 Alterar Senha</span>
+                        </button>
+                        <button
+                            onClick={handleLogout}
+                            className="w-full flex items-center justify-center space-x-2 py-2 px-4 rounded-md border border-slate-600/50 text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all text-xs"
+                        >
+                            <span>🚪 Sair</span>
+                        </button>
+                    </div>
                 </div>
             </aside>
 
@@ -78,6 +88,11 @@ const AreaClienteLayout: React.FC = () => {
             <main className="flex-1 overflow-auto p-4 md:p-8">
                 <Outlet />
             </main>
+
+            <ChangePasswordModal
+                isOpen={isCPModalOpen}
+                onClose={() => setIsCPModalOpen(false)}
+            />
         </div>
     );
 };

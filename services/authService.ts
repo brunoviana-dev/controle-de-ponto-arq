@@ -64,3 +64,31 @@ export const getCurrentUser = (): User | null => {
     const session = localStorage.getItem(SESSION_KEY);
     return session ? JSON.parse(session) : null;
 };
+
+export const changePassword = async (oldPassword: string, newPassword: string): Promise<void> => {
+    // 1. Obter o usuário logado para pegar o email
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user || !user.email) {
+        throw new Error('Usuário não autenticado ou e-mail não encontrado.');
+    }
+
+    // 2. Verificar a senha atual tentando um re-login silencioso
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: oldPassword
+    });
+
+    if (signInError) {
+        throw new Error('Senha atual incorreta.');
+    }
+
+    // 3. Atualizar para a nova senha
+    const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword
+    });
+
+    if (updateError) {
+        throw new Error(updateError.message);
+    }
+};
