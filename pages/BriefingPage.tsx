@@ -32,6 +32,17 @@ const BriefingPage: React.FC = () => {
     const [fileRespostas, setFileRespostas] = useState<Record<string, File[]>>({});
 
     useEffect(() => {
+        if (empresa) {
+            const nomeEmpresa = empresa.nome_fantasia || empresa.razao_social || 'Escritório';
+            document.title = `Briefing - ${nomeEmpresa}`;
+        }
+
+        return () => {
+            document.title = 'Controle de Ponto - Arquitetura';
+        };
+    }, [empresa]);
+
+    useEffect(() => {
         const loadInitialData = async () => {
             if (!slug) {
                 setNotFound(true);
