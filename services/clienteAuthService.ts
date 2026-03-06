@@ -56,12 +56,25 @@ export const loginCliente = async (email: string, pass: string) => {
             throw new Error('Cliente não Encontrado');
         }
 
-        // 3. Definir a sessão de forma assíncrona no SDK
+        // 3. Montar objeto para o localStorage (fundamental para manter logado no F5)
+        const clientUser = {
+            id: authUser.id,
+            name: cliente.nome || authUser.email.split('@')[0],
+            role: 'CLIENTE',
+            email: authUser.email,
+            empresaId: cliente.empresa_id || '', // IMPORTANTE: Pegar a empresa do cliente
+            userId: authUser.id,
+            accessToken: authSession.access_token
+        };
+
+        localStorage.setItem('app_session_client', JSON.stringify(clientUser));
+
+        // 4. Definir a sessão no SDK
         supabase.auth.setSession(authSession).catch(err => {
-            console.error('Erro ao definir sessão de cliente em segundo plano:', err.message);
+            console.error('Erro ao definir sessão de cliente:', err.message);
         });
 
-        return authUser;
+        return clientUser;
     } catch (err: any) {
         throw err;
     }

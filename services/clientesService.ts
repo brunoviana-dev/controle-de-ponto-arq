@@ -16,31 +16,54 @@ const ensureAdmin = () => {
 export const getClientes = async (): Promise<Cliente[]> => {
     ensureAdmin();
 
-    const { data, error } = await supabase
-        .from('clientes')
-        .select('*')
-        .eq('empresa_id', getEmpresaAtualId())
-        .order('nome');
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    const adminSessionStr = localStorage.getItem('app_session');
 
-    if (error) {
-        throw new Error(`Erro ao buscar clientes: ${error.message}`);
+    let token = supabaseAnonKey;
+    if (adminSessionStr) {
+        try {
+            const adminUser = JSON.parse(adminSessionStr);
+            if (adminUser.accessToken) token = adminUser.accessToken;
+        } catch (e) { }
     }
 
-    return (data || []).map(c => ({
-        id: c.id,
-        nome: c.nome,
-        email: c.email,
-        telefone: c.telefone,
-        cpfCnpj: c.cpf_cnpj,
-        dataNascimento: c.data_nascimento,
-        endereco: c.endereco,
-        observacoes: c.observacoes,
-        ativo: c.ativo,
-        origem: c.origem,
-        authUserId: c.auth_user_id,
-        createdAt: c.created_at,
-        updatedAt: c.updated_at
-    }));
+    try {
+        const url = `${supabaseUrl}/rest/v1/clientes?select=*&empresa_id=eq.${getEmpresaAtualId()}&order=nome.asc`;
+        const response = await fetch(url, {
+            headers: {
+                'apikey': supabaseAnonKey,
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const err = await response.text();
+            throw new Error(`Erro na API: ${err}`);
+        }
+
+        const data = await response.json();
+
+        return (data || []).map(c => ({
+            id: c.id,
+            nome: c.nome,
+            email: c.email,
+            telefone: c.telefone,
+            cpfCnpj: c.cpf_cnpj,
+            dataNascimento: c.data_nascimento,
+            endereco: c.endereco,
+            observacoes: c.observacoes,
+            ativo: c.ativo,
+            origem: c.origem,
+            authUserId: c.auth_user_id,
+            createdAt: c.created_at,
+            updatedAt: c.updated_at
+        }));
+    } catch (error: any) {
+        console.error('Falha ao buscar clientes via fetch:', error);
+        throw error;
+    }
 };
 
 /**

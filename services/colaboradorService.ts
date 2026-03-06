@@ -9,26 +9,16 @@ export const getColaboradores = async (): Promise<Colaborador[]> => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
     const adminSessionStr = localStorage.getItem('app_session');
+    const clientSessionStr = localStorage.getItem('app_session_client');
 
     let token = supabaseAnonKey;
-    if (adminSessionStr) {
-        try {
-            const adminUser = JSON.parse(adminSessionStr);
-            // Se tivermos um token persistido em algum lugar, poderíamos usar. 
-            // Mas o REST API do Supabase aceita anonKey se RLS estiver off.
-            // Para maior segurança, se o SDK tiver uma sessão, o token está no localStorage do SDK.
-            // No entanto, para simplicidade e robustez contra deadlocks:
-        } catch (e) { }
-    }
 
-    // Tentar pegar o token do SDK se disponível no localStorage
-    // O Supabase salva em sb-[project-id]-auth-token
-    const projectId = supabaseUrl.split('.')[0].replace('https://', '');
-    const sdkSessionStr = localStorage.getItem(`sb-${projectId}-auth-token`);
-    if (sdkSessionStr) {
+    // Priorizar o token do app_session (User logado)
+    const sessionStr = adminSessionStr || clientSessionStr;
+    if (sessionStr) {
         try {
-            const sdkSession = JSON.parse(sdkSessionStr);
-            if (sdkSession.access_token) token = sdkSession.access_token;
+            const userData = JSON.parse(sessionStr);
+            if (userData.accessToken) token = userData.accessToken;
         } catch (e) { }
     }
 

@@ -26,13 +26,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Inicializar a sessão no SDK a partir do localStorage de forma robusta
         const initSession = async () => {
             const adminSessionStr = localStorage.getItem('app_session');
-            if (adminSessionStr) {
+            const clientSessionStr = localStorage.getItem('app_session_client');
+
+            const sessionStr = adminSessionStr || clientSessionStr;
+
+            if (sessionStr) {
                 try {
-                    const adminUser = JSON.parse(adminSessionStr);
-                    if (adminUser.accessToken) {
+                    const userData = JSON.parse(sessionStr);
+                    if (userData.accessToken) {
                         // Define a sessão no SDK de forma silenciosa para habilitar os headers
                         supabase.auth.setSession({
-                            access_token: adminUser.accessToken,
+                            access_token: userData.accessToken,
                             refresh_token: ''
                         }).catch(() => { });
                     }

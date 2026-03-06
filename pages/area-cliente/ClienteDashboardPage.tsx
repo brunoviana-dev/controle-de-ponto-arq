@@ -20,19 +20,20 @@ const ClienteDashboardPage: React.FC = () => {
         const client = JSON.parse(currentUser);
         setLoading(true);
         try {
-            // Primeiro buscar o ID real do cliente vinculado ao auth_user_id
-            const { data: clienteData } = await supabase
+            // Primeiro buscar o perfil real do cliente (obtém ID e EmpresaID)
+            const { data: clienteData, error: clientError } = await supabase
                 .from('clientes')
-                .select('id')
+                .select('id, empresa_id')
                 .eq('auth_user_id', client.id)
                 .single();
 
-            if (!clienteData) {
+            if (clientError || !clienteData) {
+                console.warn('Perfil de cliente não encontrado para o usuário logado');
                 setProjetos([]);
                 return;
             }
 
-            // Agora buscar apenas os PROJETOS deste cliente na empresa correta
+            // Agora buscar apenas os PROJETOS deste cliente filtrando por sua empresa real
             const { data, error } = await supabase
                 .from('projetos')
                 .select(`
@@ -45,7 +46,7 @@ const ClienteDashboardPage: React.FC = () => {
                     contratos_gerados (arquivo_path)
                 `)
                 .eq('cliente_id', clienteData.id)
-                .eq('empresa_id', client.empresaId);
+                .eq('empresa_id', clienteData.empresa_id);
 
             if (error) throw error;
 

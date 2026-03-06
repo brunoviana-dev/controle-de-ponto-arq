@@ -15,10 +15,16 @@ const CollaboratorsPage: React.FC = () => {
   const [creatingLogin, setCreatingLogin] = useState(false);
 
   const fetchColaboradores = async () => {
-    setIsLoading(true);
-    const data = await getColaboradores();
-    setColaboradores(data);
-    setIsLoading(false);
+    try {
+      setIsLoading(true);
+      const data = await getColaboradores();
+      setColaboradores(data);
+    } catch (error: any) {
+      console.error('Erro ao buscar colaboradores:', error);
+      alert('Erro ao carregar colaboradores. Por favor, tente recarregar a página.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {

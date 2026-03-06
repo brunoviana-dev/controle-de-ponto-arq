@@ -17,51 +17,72 @@ const ensureAdmin = () => {
 export const getProjetos = async (): Promise<Projeto[]> => {
     ensureAdmin();
 
-    const { data, error } = await supabase
-        .from('projetos')
-        .select(`
-            *,
-            cliente:clientes(id, nome),
-            projeto_tipo:projeto_tipos(id, nome),
-            contrato:contratos_gerados(arquivo_path)
-        `)
-        .eq('empresa_id', getEmpresaAtualId())
-        .order('created_at', { ascending: false });
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    const adminSessionStr = localStorage.getItem('app_session');
 
-    if (error) {
-        throw new Error(`Erro ao buscar projetos: ${error.message}`);
+    let token = supabaseAnonKey;
+    if (adminSessionStr) {
+        try {
+            const adminUser = JSON.parse(adminSessionStr);
+            if (adminUser.accessToken) token = adminUser.accessToken;
+        } catch (e) { }
     }
 
-    return (data || []).map(p => ({
-        id: p.id,
-        clienteId: p.cliente_id,
-        nomeProjeto: p.nome_projeto,
-        empresa: p.empresa,
-        enderecoObra: p.endereco_obra,
-        dataInicio: p.data_inicio,
-        dataPrevistaTermino: p.data_prevista_termino,
-        status: p.status,
-        valor: p.valor,
-        formaPagamento: p.forma_pagamento,
-        numeroPrestacoes: p.numero_prestacoes,
-        observacoes: p.observacoes,
-        createdAt: p.created_at,
-        updatedAt: p.updated_at,
-        projetoTipoId: p.projeto_tipo_id,
-        cliente: p.cliente ? {
-            id: p.cliente.id,
-            nome: p.cliente.nome
-        } : undefined,
-        projetoTipo: p.projeto_tipo ? {
-            id: p.projeto_tipo.id,
-            nome: p.projeto_tipo.nome
-        } : undefined,
-        contrato: (p.contrato && Array.isArray(p.contrato) && p.contrato.length > 0) ? {
-            arquivoPath: p.contrato[0].arquivo_path
-        } : (p.contrato && !Array.isArray(p.contrato) && (p.contrato as any).arquivo_path) ? {
-            arquivoPath: (p.contrato as any).arquivo_path
-        } : undefined
-    }));
+    try {
+        // Query string complexa com joins para PostgREST via fetch
+        const select = `*,cliente:clientes(id,nome),projeto_tipo:projeto_tipos(id,nome),contrato:contratos_gerados(arquivo_path)`;
+        const url = `${supabaseUrl}/rest/v1/projetos?select=${select}&empresa_id=eq.${getEmpresaAtualId()}&order=created_at.desc`;
+
+        const response = await fetch(url, {
+            headers: {
+                'apikey': supabaseAnonKey,
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const err = await response.text();
+            throw new Error(`Erro na API: ${err}`);
+        }
+
+        const data = await response.json();
+
+        return (data || []).map(p => ({
+            id: p.id,
+            clienteId: p.cliente_id,
+            nomeProjeto: p.nome_projeto,
+            empresa: p.empresa,
+            enderecoObra: p.endereco_obra,
+            dataInicio: p.data_inicio,
+            dataPrevistaTermino: p.data_prevista_termino,
+            status: p.status,
+            valor: p.valor,
+            formaPagamento: p.forma_pagamento,
+            numeroPrestacoes: p.numero_prestacoes,
+            observacoes: p.observacoes,
+            createdAt: p.created_at,
+            updatedAt: p.updated_at,
+            projetoTipoId: p.projeto_tipo_id,
+            cliente: p.cliente ? {
+                id: p.cliente.id,
+                nome: p.cliente.nome
+            } : undefined,
+            projetoTipo: p.projeto_tipo ? {
+                id: p.projeto_tipo.id,
+                nome: p.projeto_tipo.nome
+            } : undefined,
+            contrato: (p.contrato && Array.isArray(p.contrato) && p.contrato.length > 0) ? {
+                arquivoPath: p.contrato[0].arquivo_path
+            } : (p.contrato && !Array.isArray(p.contrato) && (p.contrato as any).arquivo_path) ? {
+                arquivoPath: (p.contrato as any).arquivo_path
+            } : undefined
+        }));
+    } catch (error: any) {
+        console.error('Falha ao buscar projetos via fetch:', error);
+        throw error;
+    }
 };
 
 /**
