@@ -76,13 +76,13 @@ const DashboardLayout: React.FC = () => {
                 onClick={() => setIsCPModalOpen(true)}
                 className="w-full flex items-center justify-center space-x-2 py-1.5 rounded-lg border border-slate-600/50 text-slate-300 hover:bg-slate-700 hover:text-white transition-all text-xs"
               >
-                <span>Alterar Senha</span>
+                <span>🔑 Alterar Senha</span>
               </button>
               <button
                 onClick={handleLogout}
                 className="w-full flex items-center justify-center space-x-2 py-1.5 rounded-lg border border-slate-600/50 text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all text-xs"
               >
-                <span>Sair</span>
+                <span>🚪 Sair</span>
               </button>
             </div>
           )}
