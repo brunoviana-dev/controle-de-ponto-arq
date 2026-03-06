@@ -71,6 +71,7 @@ export const getFolhaPonto = async (
             snapshotValorHora: data.snapshot_valor_hora,
             snapshotTotalHoras: data.snapshot_total_horas,
             statusPagamento: data.status_pagamento || 'pendente',
+            comprovanteUrl: data.comprovante_url,
             empresaId: data.empresa_id
         };
     }
@@ -95,6 +96,7 @@ export const saveFolhaPonto = async (folha: FolhaPonto): Promise<void> => {
         snapshot_valor_hora: folha.snapshotValorHora,
         snapshot_total_horas: folha.snapshotTotalHoras,
         status_pagamento: folha.statusPagamento,
+        comprovante_url: folha.comprovanteUrl,
         empresa_id: folha.empresaId || getEmpresaAtualId()
     };
 

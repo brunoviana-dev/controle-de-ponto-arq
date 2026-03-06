@@ -66,6 +66,7 @@ export interface FolhaPonto {
   snapshotValorHora?: number;
   snapshotTotalHoras?: number;
   statusPagamento?: 'pendente' | 'pago';
+  comprovanteUrl?: string;
   empresaId?: string;
 }
 
@@ -80,6 +81,7 @@ export interface ResumoPagamento {
   valorHora: number;
   totalPagar: number;
   statusPagamento?: 'pendente' | 'pago';
+  comprovanteUrl?: string;
   valorTotalCalculado?: number;
   valorInss?: number;
 }

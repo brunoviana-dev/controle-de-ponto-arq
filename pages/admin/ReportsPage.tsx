@@ -24,6 +24,8 @@ const ReportsPage: React.FC = () => {
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [paymentValue, setPaymentValue] = useState<number>(0);
   const [isSubmittingPay, setIsSubmittingPay] = useState(false);
+  const [comprovanteFile, setComprovanteFile] = useState<File | null>(null);
+  const [uploadingComprovante, setUploadingComprovante] = useState(false);
 
   const generateReport = async () => {
     setLoading(true);
@@ -60,7 +62,8 @@ const ReportsPage: React.FC = () => {
           totalPagar: folha.valorPagoFinal || 0,
           valorTotalCalculado: folha.valorTotalCalculado,
           valorInss: folha.valorInss,
-          statusPagamento: 'pago'
+          statusPagamento: 'pago',
+          comprovanteUrl: folha.comprovanteUrl
         });
       } else {
         // Se pendente, calcular realtime
@@ -137,16 +140,60 @@ const ReportsPage: React.FC = () => {
       folha.valorInss = paymentTarget.valorInss;
       folha.valorPagoFinal = paymentTarget.totalPagar;
 
+      // Se houver arquivo, fazer upload
+      if (comprovanteFile) {
+        setUploadingComprovante(true);
+        try {
+          const fileExt = comprovanteFile.name.split('.').pop();
+          const fileName = `${paymentTarget.colaboradorId}_${paymentTarget.ano}_${paymentTarget.mes}_${Date.now()}.${fileExt}`;
+          const filePath = `comprovantes/${fileName}`;
+
+          const { data: uploadData, error: uploadError } = await (await import('../../services/supabaseClient')).supabase.storage
+            .from('folhas-ponto-comprovantes')
+            .upload(filePath, comprovanteFile);
+
+          if (uploadError) throw uploadError;
+          folha.comprovanteUrl = filePath;
+        } catch (uploadErr) {
+          console.error("Erro no upload do comprovante:", uploadErr);
+          alert("Aviso: O pagamento será registrado, mas houve um erro ao salvar o arquivo.");
+        } finally {
+          setUploadingComprovante(false);
+        }
+      }
+
       await saveFolhaPonto(folha);
 
       setConfirmModalOpen(false);
       setPaymentTarget(null);
+      setComprovanteFile(null); // Reset file
       await generateReport();
     } catch (error) {
       console.error("Erro ao processar pagamento:", error);
       alert("Erro ao processar pagamento.");
     } finally {
       setProcessingPayment(false);
+    }
+  };
+
+  const handleDownloadComprovante = async (path: string) => {
+    try {
+      const { data, error } = await (await import('../../services/supabaseClient')).supabase.storage
+        .from('folhas-ponto-comprovantes')
+        .createSignedUrl(path, 60 * 60); // Válido por 1 hora
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, '_blank');
+      } else {
+        alert("Não foi possível gerar o link do comprovante.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao abrir comprovante.");
     }
   };
 
@@ -267,16 +314,31 @@ const ReportsPage: React.FC = () => {
                       <span className="text-2xl font-bold text-primary">{formatCurrency(item.totalPagar)}</span>
                     </div>
 
-                    <button
-                      onClick={() => handleOpenPaymentModal(item)}
-                      disabled={item.statusPagamento === 'pago'}
-                      className={`w-full py-2 rounded font-bold transition-all ${item.statusPagamento === 'pago'
-                        ? 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50'
-                        : 'bg-primary hover:bg-blue-600 text-white shadow-lg shadow-blue-900/20'
-                        }`}
-                    >
-                      {item.statusPagamento === 'pago' ? 'Mês Fechado' : 'Pagar e Bloquear'}
-                    </button>
+                    {item.statusPagamento === 'pendente' ? (
+                      <button
+                        onClick={() => handleOpenPaymentModal(item)}
+                        className="w-full py-2 rounded font-bold transition-all bg-primary hover:bg-blue-600 text-white shadow-lg shadow-blue-900/20"
+                      >
+                        Pagar e Bloquear
+                      </button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <div className="flex-1 py-2 text-center rounded font-bold bg-slate-700 text-slate-500 opacity-50 cursor-not-allowed">
+                          Mês Fechado
+                        </div>
+                        {item.comprovanteUrl && (
+                          <button
+                            onClick={() => handleDownloadComprovante(item.comprovanteUrl!)}
+                            className="px-3 py-2 rounded font-bold bg-slate-800 text-blue-400 hover:bg-slate-700 hover:text-blue-300 transition-colors border border-slate-600 shadow-sm flex items-center justify-center"
+                            title="Ver Comprovante"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))
@@ -384,6 +446,31 @@ const ReportsPage: React.FC = () => {
               </div>
             </div>
 
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-slate-400 mb-2">
+                Anexo de Comprovante <span className="text-xs font-normal text-slate-500">(Opcional)</span>
+              </label>
+              <div className="flex items-center justify-center w-full">
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-700 border-dashed rounded-lg cursor-pointer bg-slate-800/50 hover:bg-slate-800 transition-colors">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <svg className="w-8 h-8 mb-3 text-slate-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" />
+                    </svg>
+                    <p className="mb-2 text-sm text-slate-400">
+                      <span className="font-semibold">{comprovanteFile ? comprovanteFile.name : 'Clique para anexar'}</span>
+                    </p>
+                    <p className="text-xs text-slate-500">PDF, JPG ou PNG</p>
+                  </div>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,image/*"
+                    onChange={(e) => setComprovanteFile(e.target.files?.[0] || null)}
+                  />
+                </label>
+              </div>
+            </div>
+
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setConfirmModalOpen(false)}
@@ -397,8 +484,8 @@ const ReportsPage: React.FC = () => {
                 disabled={processingPayment}
                 className="px-4 py-2 bg-primary hover:bg-blue-600 text-white rounded font-bold shadow-lg shadow-blue-900/20 disabled:opacity-70 flex items-center gap-2"
               >
-                {processingPayment && <span className="animate-spin text-white">⌛</span>}
-                Confirmar Pagamento
+                {(processingPayment || uploadingComprovante) && <span className="animate-spin text-white">⌛</span>}
+                {uploadingComprovante ? 'Enviando Arquivo...' : 'Confirmar Pagamento'}
               </button>
             </div>
           </div>
