@@ -5,54 +5,82 @@ import { User, UserRole } from './interfaces/types';
 const SESSION_KEY = 'app_session';
 
 export const login = async (email: string, password: string): Promise<User> => {
-    // 1. Autenticar no Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password
-    });
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-    if (authError) {
-        throw new Error(authError.message);
+    try {
+        // 1. Chamar a Edge Function segura via FETCH nativo
+        const response = await fetch(`${supabaseUrl}/functions/v1/login-auth-security`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseAnonKey}`,
+                'apikey': supabaseAnonKey
+            },
+            body: JSON.stringify({ email, password })
+        });
+
+        if (!response.ok) {
+            let errorMessage = 'Erro ao processar login.';
+            try {
+                const errorBody = await response.json();
+                if (errorBody && errorBody.error) errorMessage = errorBody.error;
+            } catch (e) { }
+            throw new Error(errorMessage);
+        }
+
+        const edgeData = await response.json();
+
+        if (!edgeData || !edgeData.session) {
+            throw new Error(edgeData?.error || 'Erro ao receber dados de autenticação.');
+        }
+
+        const { user: authUser, session: authSession } = edgeData;
+
+        // 2. Buscar dados complementares via API REST direta para evitar deadlocks no SDK
+        const colabUrl = `${supabaseUrl}/rest/v1/colaboradores?user_id=eq.${authUser.id}&select=*`;
+        const colabResponse = await fetch(colabUrl, {
+            headers: {
+                'apikey': supabaseAnonKey,
+                'Authorization': `Bearer ${authSession.access_token}`,
+                'Accept': 'application/vnd.pgrst.object+json'
+            }
+        });
+
+        if (!colabResponse.ok) {
+            throw new Error('Erro ao buscar perfil do colaborador');
+        }
+
+        const colaborador = await colabResponse.json();
+
+        if (!colaborador) {
+            throw new Error('Colaborador não Encontrado');
+        }
+
+        const role = colaborador.perfil === 'admin' ? UserRole.ADMIN : UserRole.COLABORADOR;
+
+        const user: User = {
+            id: colaborador.id,
+            name: colaborador.nome,
+            role,
+            email: colaborador.email,
+            empresaId: colaborador.empresa_id,
+            userId: authUser.id,
+            accessToken: authSession.access_token
+        };
+
+        // 3. Salvar no localStorage primeiro (fundamental para o redirecionamento imediato)
+        localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+
+        // 4. Definir a sessão no cliente do Supabase de forma ASSÍNCRONA
+        supabase.auth.setSession(authSession).catch(err => {
+            console.error('Erro ao definir sessão em segundo plano:', err.message);
+        });
+
+        return user;
+    } catch (err: any) {
+        throw err;
     }
-
-    if (!authData.user) {
-        throw new Error('Erro ao obter dados do usuário');
-    }
-
-    // 2. Buscar dados complementares na tabela colaboradores pelo user_id
-    const colabPromise = supabase
-        .from('colaboradores')
-        .select('*')
-        .eq('user_id', authData.user.id)
-        .maybeSingle();
-
-    const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Tempo esgotado ao buscar perfil do colaborador')), 15000)
-    );
-
-    const { data: colaborador } = await Promise.race([colabPromise, timeoutPromise]) as any;
-
-    if (!colaborador) {
-        await supabase.auth.signOut();
-        throw new Error('Colaborador não Encontrado');
-    }
-
-    // Determinar role baseado no campo perfil
-    const role = colaborador.perfil === 'admin' ? UserRole.ADMIN : UserRole.COLABORADOR;
-
-    const user: User = {
-        id: colaborador.id,
-        name: colaborador.nome,
-        role,
-        email: colaborador.email,
-        empresaId: colaborador.empresa_id,
-        userId: authData.user.id
-    };
-
-    // 3. Salvar sessão local (admin/colaborador)
-    localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-
-    return user;
 };
 
 export const logout = () => {

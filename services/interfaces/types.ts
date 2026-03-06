@@ -11,7 +11,7 @@ export interface User {
   email: string;
   empresaId: string;
   userId?: string; // Auth User ID
-  token?: string; // Mock token
+  accessToken?: string; // JWT Token
 }
 
 export interface LoginResponse {

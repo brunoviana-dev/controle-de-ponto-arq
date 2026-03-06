@@ -19,7 +19,7 @@ const Login: React.FC = () => {
     setError('');
 
     try {
-      // Garantir que não há sessão antiga travada
+      // Limpeza antecipada de sessão antiga (aguardar para evitar corrida no SDK)
       await signOut();
 
       const user = await login(username, password);
