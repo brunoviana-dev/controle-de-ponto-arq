@@ -21,6 +21,7 @@ import BriefingTemplatePage from './pages/admin/BriefingTemplatePage';
 import BriefingResponsesPage from './pages/admin/BriefingResponsesPage';
 import EmpresaPage from './pages/admin/EmpresaPage';
 import BriefingPage from './pages/BriefingPage';
+import CalendarioPage from './pages/calendario/CalendarioPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 // Client Area Pages
@@ -133,6 +134,14 @@ const App: React.FC = () => {
             </ProtectedRoute>
           }>
             <Route index element={<TimesheetPage />} />
+          </Route>
+
+          <Route path="/calendario" element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<CalendarioPage />} />
           </Route>
 
           {/* Client Area Routes */}

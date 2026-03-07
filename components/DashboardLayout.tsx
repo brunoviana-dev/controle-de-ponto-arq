@@ -130,6 +130,9 @@ const DashboardLayout: React.FC = () => {
               <NavLink to="/admin/ponto-admin" className={navClass} title="Gerenciar Pontos">
                 <span className="text-xl">📅</span> {!isCollapsed && <span>Gerenciar Pontos</span>}
               </NavLink>
+              <NavLink to="/calendario" className={navClass} title="Calendário">
+                <span className="text-xl">📆</span> {!isCollapsed && <span>Calendário</span>}
+              </NavLink>
 
               {!isCollapsed && <div className="text-[10px] font-bold text-slate-600 uppercase px-3 pt-4 pb-2 tracking-widest">Financeiro</div>}
               {isCollapsed && <div className="h-px bg-slate-700/50 my-4 mx-2" />}
@@ -160,6 +163,9 @@ const DashboardLayout: React.FC = () => {
               {isCollapsed && <div className="h-px bg-slate-700/50 my-4 mx-2" />}
               <NavLink to="/ponto" end className={navClass} title="Minha Folha">
                 <span className="text-xl">🕒</span> {!isCollapsed && <span>Minha Folha</span>}
+              </NavLink>
+              <NavLink to="/calendario" className={navClass} title="Calendário">
+                <span className="text-xl">📆</span> {!isCollapsed && <span>Calendário</span>}
               </NavLink>
             </>
           )}

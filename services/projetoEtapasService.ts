@@ -46,6 +46,46 @@ export const getEtapasByProjeto = async (projetoId: string): Promise<ProjetoEtap
 };
 
 /**
+ * Retorna todas as etapas de todos os projetos (usado no Calendário Geral)
+ */
+export const getAllEtapasCalendario = async (empresaId: string, filtros?: { colaboradorId?: string }): Promise<(ProjetoEtapa & { projeto?: { nome_projeto: string } })[]> => {
+    let query = supabase
+        .from('projeto_etapas')
+        .select(`
+            *,
+            colaborador:colaboradores(nome),
+            projeto:projetos(nome_projeto)
+        `)
+        .eq('empresa_id', empresaId);
+
+    if (filtros?.colaboradorId) {
+        query = query.eq('colaborador_id', filtros.colaboradorId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+        throw new Error(`Erro ao buscar etapas para o calendário: ${error.message}`);
+    }
+
+    return (data || []).map(e => ({
+        id: e.id,
+        projetoId: e.projeto_id,
+        nomeEtapa: e.nome_etapa,
+        ordem: e.ordem,
+        dataInicioPrevista: e.data_inicio_prevista,
+        dataFimPrevista: e.data_fim_prevista,
+        status: e.status,
+        colaboradorId: e.colaborador_id,
+        createdAt: e.created_at,
+        updatedAt: e.updated_at,
+        colaborador: e.colaborador,
+        projeto: e.projeto
+    }));
+};
+
+
+/**
  * Sincroniza o status do projeto com base no status de suas etapas
  */
 const syncProjetoStatus = async (projetoId: string): Promise<string> => {
