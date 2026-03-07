@@ -112,7 +112,7 @@ const TimesheetPage: React.FC<TimesheetPageProps> = ({ adminView }) => {
             <div className="flex flex-col gap-1">
               <label className="text-xs text-slate-400">Colaborador</label>
               <select
-                className="bg-background border border-slate-600 text-white rounded p-2 outline-none focus:border-primary"
+                className="bg-background border border-slate-600 text-slate-200 rounded p-2 outline-none focus:border-primary"
                 value={selectedColabId}
                 onChange={(e) => setSelectedColabId(e.target.value)}
               >
@@ -126,7 +126,7 @@ const TimesheetPage: React.FC<TimesheetPageProps> = ({ adminView }) => {
           <div className="flex flex-col gap-1">
             <label className="text-xs text-slate-400">Mês</label>
             <select
-              className="bg-background border border-slate-600 text-white rounded p-2 outline-none focus:border-primary"
+              className="bg-background border border-slate-600 text-slate-200 rounded p-2 outline-none focus:border-primary"
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
             >
@@ -139,7 +139,7 @@ const TimesheetPage: React.FC<TimesheetPageProps> = ({ adminView }) => {
           <div className="flex flex-col gap-1">
             <label className="text-xs text-slate-400">Ano</label>
             <select
-              className="bg-background border border-slate-600 text-white rounded p-2 outline-none focus:border-primary"
+              className="bg-background border border-slate-600 text-slate-200 rounded p-2 outline-none focus:border-primary"
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
             >
@@ -274,9 +274,9 @@ const TimesheetPage: React.FC<TimesheetPageProps> = ({ adminView }) => {
             <style>{`
               .time-input {
                 background: transparent;
-                border: 1px solid #334155;
+                border: 1px solid var(--color-border);
                 border-radius: 4px;
-                color: white;
+                color: var(--color-text-base);
                 font-size: 0.75rem;
                 padding: 2px 4px;
                 width: 100%;
@@ -290,7 +290,7 @@ const TimesheetPage: React.FC<TimesheetPageProps> = ({ adminView }) => {
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 };
 
