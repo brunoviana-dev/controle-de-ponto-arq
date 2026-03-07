@@ -25,11 +25,7 @@ const Login: React.FC = () => {
       const user = await login(username, password);
       refreshUser();
 
-      if (user.role === UserRole.ADMIN) {
-        navigate('/admin/colaboradores');
-      } else {
-        navigate('/ponto');
-      }
+      navigate('/calendario');
     } catch (err: any) {
       setError(err.message || 'Usuário ou senha incorretos.');
     } finally {
