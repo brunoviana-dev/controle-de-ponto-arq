@@ -112,6 +112,9 @@ const DashboardLayout: React.FC = () => {
             <>
               {!isCollapsed && <div className="text-[10px] font-bold text-slate-600 uppercase px-3 pt-4 pb-2 tracking-widest">Administração</div>}
               {isCollapsed && <div className="h-px bg-slate-700/50 my-4 mx-2" />}
+              <NavLink to="/dashboard" end className={navClass} title="Dashboard">
+                <span className="text-xl">🏠</span> {!isCollapsed && <span>Dashboard</span>}
+              </NavLink>
               <NavLink to="/admin/empresa" className={navClass} title="Empresa">
                 <span className="text-xl">💼</span> {!isCollapsed && <span>Empresa</span>}
               </NavLink>
@@ -161,6 +164,9 @@ const DashboardLayout: React.FC = () => {
             <>
               {!isCollapsed && <div className="text-[10px] font-bold text-slate-600 uppercase px-3 pt-4 pb-2 tracking-widest">Meu Espaço</div>}
               {isCollapsed && <div className="h-px bg-slate-700/50 my-4 mx-2" />}
+              <NavLink to="/dashboard" end className={navClass} title="Dashboard">
+                <span className="text-xl">🏠</span> {!isCollapsed && <span>Dashboard</span>}
+              </NavLink>
               <NavLink to="/ponto" end className={navClass} title="Minha Folha">
                 <span className="text-xl">🕒</span> {!isCollapsed && <span>Minha Folha</span>}
               </NavLink>

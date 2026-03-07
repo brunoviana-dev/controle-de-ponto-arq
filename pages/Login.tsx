@@ -25,7 +25,7 @@ const Login: React.FC = () => {
       const user = await login(username, password);
       refreshUser();
 
-      navigate('/calendario');
+      navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Usuário ou senha incorretos.');
     } finally {

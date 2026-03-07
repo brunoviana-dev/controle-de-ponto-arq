@@ -22,6 +22,7 @@ import BriefingResponsesPage from './pages/admin/BriefingResponsesPage';
 import EmpresaPage from './pages/admin/EmpresaPage';
 import BriefingPage from './pages/BriefingPage';
 import CalendarioPage from './pages/calendario/CalendarioPage';
+import DashboardPage from './pages/DashboardPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 // Client Area Pages
@@ -53,7 +54,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: UserR
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     // Redirect logic based on role if access denied
     if (user.role === UserRole.CLIENTE) return <Navigate to="/area-cliente" replace />;
-    return <Navigate to={user.role === UserRole.ADMIN ? '/admin/colaboradores' : '/ponto'} replace />;
+    return <Navigate to={user.role === UserRole.ADMIN ? '/dashboard' : '/dashboard'} replace />;
   }
 
   return <>{children}</>;
@@ -69,7 +70,16 @@ const App: React.FC = () => {
           <Route path="/briefing/:slug" element={<BriefingPage />} />
           <Route path="/briefingInsta/:slug" element={<BriefingPage />} />
 
-          <Route path="/" element={<Navigate to="/ponto" replace />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+          {/* Dashboard Route - primeira tela após login */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<DashboardPage />} />
+          </Route>
 
           {/* Admin Routes */}
           <Route path="/admin" element={
