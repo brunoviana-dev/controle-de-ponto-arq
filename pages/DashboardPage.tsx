@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../services/interfaces/types';
 import { getDashboardData, DashboardNotificacao, DashboardResumo } from '../services/dashboardService';
+import { ContaPagar, ResumoPagamento } from '../services/interfaces/types';
+import { contasPagarService } from '../services/contasPagarService';
+import RegistrarPagamentoModal from '../components/RegistrarPagamentoModal';
+import ConfirmarPagamentoColaboradorModal from '../components/ConfirmarPagamentoColaboradorModal';
 
 // ─── Ícones SVG inline ───────────────────────────────────────────────────────
 
@@ -98,6 +102,11 @@ const notifConfig: Record<DashboardNotificacao['tipo'], { cor: string; bgCor: st
         cor: 'text-emerald-400',
         bgCor: 'bg-emerald-500/20 border-emerald-500/30',
         icone: <IconBriefing />
+    },
+    pagamento_colaborador: {
+        cor: 'text-blue-400',
+        bgCor: 'bg-blue-500/20 border-blue-500/30',
+        icone: <IconFinanceiro />
     }
 };
 
@@ -118,6 +127,13 @@ const DashboardPage: React.FC = () => {
     const [notificacoes, setNotificacoes] = useState<DashboardNotificacao[]>([]);
     const [resumo, setResumo] = useState<DashboardResumo | null>(null);
     const [erro, setErro] = useState<string | null>(null);
+    const [selectedConta, setSelectedConta] = useState<ContaPagar | null>(null);
+    const [isPagamentoModalOpen, setIsPagamentoModalOpen] = useState(false);
+    const [selectedPagamentoColab, setSelectedPagamentoColab] = useState<ResumoPagamento | null>(null);
+    const [isPagamentoColabModalOpen, setIsPagamentoColabModalOpen] = useState(false);
+
+    const mesAtual = new Date().getMonth() + 1;
+    const anoAtual = new Date().getFullYear();
 
     const carregarDados = useCallback(async (showRefreshing = false) => {
         try {
@@ -140,6 +156,20 @@ const DashboardPage: React.FC = () => {
     useEffect(() => {
         carregarDados();
     }, [carregarDados]);
+
+    const abrirModalPagamento = async (contaId: string) => {
+        try {
+            const { data, error } = await contasPagarService.getById(contaId);
+            if (error) throw error;
+            if (data) {
+                setSelectedConta(data);
+                setIsPagamentoModalOpen(true);
+            }
+        } catch (err) {
+            console.error('Erro ao buscar conta:', err);
+            alert('Erro ao carregar detalhes da conta.');
+        }
+    };
 
     // ─── Skeleton de loading ────────────────────────────────────────────────────
 
@@ -252,7 +282,16 @@ const DashboardPage: React.FC = () => {
                             return (
                                 <button
                                     key={notif.id}
-                                    onClick={() => navigate(notif.link)}
+                                    onClick={() => {
+                                        if (notif.tipo === 'conta_vencendo' && notif.referenciaId) {
+                                            abrirModalPagamento(notif.referenciaId);
+                                        } else if (notif.tipo === 'pagamento_colaborador' && notif.extraData) {
+                                            setSelectedPagamentoColab(notif.extraData);
+                                            setIsPagamentoColabModalOpen(true);
+                                        } else {
+                                            navigate(notif.link);
+                                        }
+                                    }}
                                     className={`
                     w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border transition-all duration-200
                     hover:translate-x-1 hover:shadow-lg text-left group
@@ -508,6 +547,28 @@ const DashboardPage: React.FC = () => {
           animation: fadeInUp 0.3s ease both;
         }
       `}</style>
+
+            <RegistrarPagamentoModal
+                isOpen={isPagamentoModalOpen}
+                conta={selectedConta}
+                mesReferencia={mesAtual}
+                anoReferencia={anoAtual}
+                onClose={() => {
+                    setIsPagamentoModalOpen(false);
+                    setSelectedConta(null);
+                }}
+                onSuccess={() => carregarDados(true)}
+            />
+
+            <ConfirmarPagamentoColaboradorModal
+                isOpen={isPagamentoColabModalOpen}
+                paymentTarget={selectedPagamentoColab}
+                onClose={() => {
+                    setIsPagamentoColabModalOpen(false);
+                    setSelectedPagamentoColab(null);
+                }}
+                onSuccess={() => carregarDados(true)}
+            />
         </div>
     );
 };

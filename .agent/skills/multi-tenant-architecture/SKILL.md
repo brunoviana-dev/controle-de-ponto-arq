@@ -43,3 +43,11 @@ const empresaId = user?.user_metadata?.empresa_id;
 ## Objetivos de Segurança
 - **Row Level Security (RLS)**: Embora atualmente implementado manualmente na camada de serviço, o objetivo a longo prazo é ter políticas de RLS no Supabase que verifiquem `auth.jwt() -> 'empresa_id'`.
 - **Validação Cruzada de Inquilinos**: Garanta que nenhum usuário possa passar um `empresa_id` arbitrário em uma carga de dados (payload) para visualizar ou modificar dados que não lhe pertencem.
+
+## 🧪 Credenciais de Teste
+> **IMPORTANTE**: Sempre que precisar testar funcionalidades no ambiente local, utilize as seguintes credenciais:
+
+| Perfil | E-mail | Senha |
+|---|---|---|
+| **Colaborador** | `bruno.s.viana@gmail.com` | `Xbarra@002` |
+| **Cliente** | `bruno.viana@hotmail.com` | `cliente123` |

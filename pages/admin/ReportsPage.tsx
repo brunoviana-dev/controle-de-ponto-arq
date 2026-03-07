@@ -5,6 +5,8 @@ import { getFolhaPonto, saveFolhaPonto } from '../../services/folhaPontoService'
 import { calculateDailyTotal, formatCurrency, getMonthName } from '../../utils/timeUtils';
 import { contasPagarService } from '../../services/contasPagarService';
 import { formatDate } from '../../utils/formatters';
+import RegistrarPagamentoModal from '../../components/RegistrarPagamentoModal';
+import ConfirmarPagamentoColaboradorModal from '../../components/ConfirmarPagamentoColaboradorModal';
 
 const ReportsPage: React.FC = () => {
   const [reportData, setReportData] = useState<ResumoPagamento[]>([]);
@@ -21,11 +23,7 @@ const ReportsPage: React.FC = () => {
   const [pagamentosContas, setPagamentosContas] = useState<ContaPagarPagamento[]>([]);
   const [payModalOpen, setPayModalOpen] = useState(false);
   const [selectedConta, setSelectedConta] = useState<ContaPagar | null>(null);
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
-  const [paymentValue, setPaymentValue] = useState<number>(0);
-  const [isSubmittingPay, setIsSubmittingPay] = useState(false);
   const [comprovanteFile, setComprovanteFile] = useState<File | null>(null);
-  const [uploadingComprovante, setUploadingComprovante] = useState(false);
 
   const generateReport = async () => {
     setLoading(true);
@@ -126,56 +124,6 @@ const ReportsPage: React.FC = () => {
     setConfirmModalOpen(true);
   };
 
-  const confirmPayment = async () => {
-    if (!paymentTarget) return;
-
-    setProcessingPayment(true);
-    try {
-      const folha = await getFolhaPonto(paymentTarget.colaboradorId, paymentTarget.mes, paymentTarget.ano);
-
-      folha.statusPagamento = 'pago';
-      folha.snapshotValorHora = paymentTarget.valorHora;
-      folha.snapshotTotalHoras = paymentTarget.totalGeral;
-      folha.valorTotalCalculado = paymentTarget.valorTotalCalculado;
-      folha.valorInss = paymentTarget.valorInss;
-      folha.valorPagoFinal = paymentTarget.totalPagar;
-
-      // Se houver arquivo, fazer upload
-      if (comprovanteFile) {
-        setUploadingComprovante(true);
-        try {
-          const fileExt = comprovanteFile.name.split('.').pop();
-          const fileName = `${paymentTarget.colaboradorId}_${paymentTarget.ano}_${paymentTarget.mes}_${Date.now()}.${fileExt}`;
-          const filePath = `comprovantes/${fileName}`;
-
-          const { data: uploadData, error: uploadError } = await (await import('../../services/supabaseClient')).supabase.storage
-            .from('folhas-ponto-comprovantes')
-            .upload(filePath, comprovanteFile);
-
-          if (uploadError) throw uploadError;
-          folha.comprovanteUrl = filePath;
-        } catch (uploadErr) {
-          console.error("Erro no upload do comprovante:", uploadErr);
-          alert("Aviso: O pagamento será registrado, mas houve um erro ao salvar o arquivo.");
-        } finally {
-          setUploadingComprovante(false);
-        }
-      }
-
-      await saveFolhaPonto(folha);
-
-      setConfirmModalOpen(false);
-      setPaymentTarget(null);
-      setComprovanteFile(null); // Reset file
-      await generateReport();
-    } catch (error) {
-      console.error("Erro ao processar pagamento:", error);
-      alert("Erro ao processar pagamento.");
-    } finally {
-      setProcessingPayment(false);
-    }
-  };
-
   const handleDownloadComprovante = async (path: string) => {
     try {
       const { data, error } = await (await import('../../services/supabaseClient')).supabase.storage
@@ -199,40 +147,7 @@ const ReportsPage: React.FC = () => {
 
   const handleOpenPayModal = (conta: ContaPagar) => {
     setSelectedConta(conta);
-    setPaymentValue(conta.valor);
-    setPaymentDate(new Date().toISOString().split('T')[0]);
     setPayModalOpen(true);
-  };
-
-  const handleValueChange = (val: string) => {
-    // Remove tudo que não é dígito
-    const cleanValue = val.replace(/\D/g, '');
-    const numericValue = Number(cleanValue) / 100;
-    setPaymentValue(numericValue);
-  };
-
-  const confirmContaPayment = async () => {
-    if (!selectedConta) return;
-
-    setIsSubmittingPay(true);
-    try {
-      await contasPagarService.registrarPagamento({
-        conta_id: selectedConta.id,
-        data_pagamento: paymentDate,
-        valor_pago: paymentValue,
-        mes_referencia: selectedMonth,
-        ano_referencia: selectedYear
-      });
-
-      setPayModalOpen(false);
-      setSelectedConta(null);
-      await generateReport();
-    } catch (error: any) {
-      console.error("Erro ao registrar pagamento:", error);
-      alert(error.message || "Erro ao registrar pagamento.");
-    } finally {
-      setIsSubmittingPay(false);
-    }
   };
 
   const totalFolhaPrevisto = reportData.reduce((acc, r) => acc + r.totalPagar, 0);
@@ -454,135 +369,29 @@ const ReportsPage: React.FC = () => {
         </>
       )}
 
-      {/* Modal Pagamento Colaborador */}
-      {confirmModalOpen && paymentTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-surface border border-slate-600 rounded-xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
-            <h3 className="text-xl font-bold text-white mb-2">Confirmar Pagamento</h3>
-            <p className="text-slate-300 mb-6">
-              Deseja confirmar o pagamento para <span className="text-primary font-bold">{paymentTarget.colaboradorNome}</span>?
-              <br /><br />
-              <span className="text-red-400 text-sm block bg-red-400/10 p-2 rounded border border-red-400/20">
-                ⚠️ Esta ação irá bloquear edições nesta folha de ponto e congelar os valores.
-              </span>
-            </p>
+      {/* Modal Pagamento Colaborador Reutilizável */}
+      <ConfirmarPagamentoColaboradorModal
+        isOpen={confirmModalOpen}
+        paymentTarget={paymentTarget}
+        onClose={() => {
+          setConfirmModalOpen(false);
+          setPaymentTarget(null);
+        }}
+        onSuccess={generateReport}
+      />
 
-            <div className="space-y-2 mb-6 bg-slate-900/50 p-4 rounded text-sm">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Valor Total:</span>
-                <span className="text-slate-200">{formatCurrency(paymentTarget.valorTotalCalculado || 0)}</span>
-              </div>
-              <div className="flex justify-between text-red-400">
-                <span>Desconto INSS:</span>
-                <span>- {formatCurrency(paymentTarget.valorInss || 0)}</span>
-              </div>
-              <div className="flex justify-between border-t border-slate-700 pt-2 mt-2 font-bold text-lg">
-                <span className="text-white">Total Final:</span>
-                <span className="text-primary">{formatCurrency(paymentTarget.totalPagar)}</span>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-slate-400 mb-2">
-                Anexo de Comprovante <span className="text-xs font-normal text-slate-500">(Opcional)</span>
-              </label>
-              <div className="flex items-center justify-center w-full">
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-700 border-dashed rounded-lg cursor-pointer bg-slate-800/50 hover:bg-slate-800 transition-colors">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <svg className="w-8 h-8 mb-3 text-slate-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" />
-                    </svg>
-                    <p className="mb-2 text-sm text-slate-400">
-                      <span className="font-semibold">{comprovanteFile ? comprovanteFile.name : 'Clique para anexar'}</span>
-                    </p>
-                    <p className="text-xs text-slate-500">PDF, JPG ou PNG</p>
-                  </div>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept=".pdf,image/*"
-                    onChange={(e) => setComprovanteFile(e.target.files?.[0] || null)}
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setConfirmModalOpen(false)}
-                className="px-4 py-2 rounded text-slate-300 hover:bg-slate-800 transition-colors"
-                disabled={processingPayment}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={confirmPayment}
-                disabled={processingPayment}
-                className="px-4 py-2 bg-primary hover:bg-blue-600 text-white rounded font-bold shadow-lg shadow-blue-900/20 disabled:opacity-70 flex items-center gap-2"
-              >
-                {(processingPayment || uploadingComprovante) && <span className="animate-spin text-white">⌛</span>}
-                {uploadingComprovante ? 'Enviando Arquivo...' : 'Confirmar Pagamento'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Pagamento Conta a Pagar */}
-      {payModalOpen && selectedConta && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-surface border border-slate-600 rounded-xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
-            <h3 className="text-xl font-bold text-white mb-2">Registrar Pagamento</h3>
-            <p className="text-slate-300 mb-6 font-medium">
-              {selectedConta.descricao}
-            </p>
-
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">Data do Pagamento</label>
-                <input
-                  type="date"
-                  className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-primary outline-none"
-                  value={paymentDate}
-                  onChange={(e) => setPaymentDate(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">Valor Pago</label>
-                <input
-                  type="text"
-                  className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-primary outline-none font-mono"
-                  value={formatCurrency(paymentValue)}
-                  onChange={(e) => handleValueChange(e.target.value)}
-                />
-              </div>
-
-              <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded text-xs text-blue-400">
-                O pagamento será registrado para o mês de referência <span className="font-bold underline">{getMonthName(selectedMonth)}/{selectedYear}</span>.
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setPayModalOpen(false)}
-                className="px-4 py-2 rounded text-slate-300 hover:bg-slate-800 transition-colors"
-                disabled={isSubmittingPay}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={confirmContaPayment}
-                disabled={isSubmittingPay}
-                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded font-bold shadow-lg shadow-emerald-900/20 disabled:opacity-70 flex items-center gap-2"
-              >
-                {isSubmittingPay && <span className="animate-spin text-white">⌛</span>}
-                Confirmar Pagamento
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal Pagamento Conta a Pagar Reutilizável */}
+      <RegistrarPagamentoModal
+        isOpen={payModalOpen}
+        conta={selectedConta}
+        mesReferencia={selectedMonth}
+        anoReferencia={selectedYear}
+        onClose={() => {
+          setPayModalOpen(false);
+          setSelectedConta(null);
+        }}
+        onSuccess={generateReport}
+      />
     </div>
   );
 };

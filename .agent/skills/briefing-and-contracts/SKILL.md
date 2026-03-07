@@ -38,3 +38,11 @@ Ao adicionar uma nova tag:
 ### Fluxo de Dados
 `Projeto` -> `Briefing` -> `Modelo de Contrato` -> `Documento Gerado`.
 Garanta que este pipeline seja consistente em todos os tipos de projeto.
+
+## 🧪 Credenciais de Teste
+> **IMPORTANTE**: Sempre que precisar testar funcionalidades no ambiente local, utilize as seguintes credenciais:
+
+| Perfil | E-mail | Senha |
+|---|---|---|
+| **Colaborador** | `bruno.s.viana@gmail.com` | `Xbarra@002` |
+| **Cliente** | `bruno.viana@hotmail.com` | `cliente123` |

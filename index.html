@@ -11,39 +11,236 @@
       theme: {
         extend: {
           colors: {
-            background: '#0f172a', // Slate 900
-            surface: '#1e293b', // Slate 800
-            primary: '#3b82f6', // Blue 500
-            secondary: '#64748b', // Slate 500
-            accent: '#f59e0b', // Amber 500
+            background: 'var(--color-background)',
+            surface: 'var(--color-surface)',
+            primary: '#3b82f6',
+            secondary: 'var(--color-secondary)',
+            accent: '#f59e0b',
           }
         }
       }
     }
   </script>
   <style>
-    body {
-      background-color: #0f172a;
-      color: #f8fafc;
+    /* ── TEMA ESCURO (padrão) ───────────────────────────── */
+    :root {
+      --color-background: #0f172a;
+      --color-surface: #1e293b;
+      --color-secondary: #64748b;
+
+      --color-text-base: #f8fafc;
+      --color-text-muted: #94a3b8;
+      --color-text-subtle: #64748b;
+
+      --color-border: rgba(51, 65, 85, 0.7);
+      --color-border-light: rgba(51, 65, 85, 0.4);
+
+      --color-topbar-bg: rgba(15, 23, 42, 0.85);
+      --color-dropdown-bg: #1e293b;
+      --color-hover-bg: rgba(51, 65, 85, 0.5);
+
+      --color-scrollbar-track: #1e293b;
+      --color-scrollbar-thumb: #475569;
+      --color-scrollbar-hover: #64748b;
     }
 
-    /* Custom Scrollbar for dark mode */
+    /* ── TEMA CLARO ─────────────────────────────────────── */
+    html.light-mode {
+      --color-background: #f1f5f9;
+      --color-surface: #ffffff;
+      --color-secondary: #94a3b8;
+
+      --color-text-base: #0f172a;
+      --color-text-muted: #475569;
+      --color-text-subtle: #94a3b8;
+
+      --color-border: rgba(203, 213, 225, 0.9);
+      --color-border-light: rgba(203, 213, 225, 0.5);
+
+      --color-topbar-bg: rgba(255, 255, 255, 0.90);
+      --color-dropdown-bg: #ffffff;
+      --color-hover-bg: rgba(241, 245, 249, 0.9);
+
+      --color-scrollbar-track: #e2e8f0;
+      --color-scrollbar-thumb: #cbd5e1;
+      --color-scrollbar-hover: #94a3b8;
+    }
+
+    /* ── Base ────────────────────────────────────────────── */
+    body {
+      background-color: var(--color-background);
+      color: var(--color-text-base);
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* ── Scrollbar adaptável ─────────────────────────────── */
     ::-webkit-scrollbar {
       width: 8px;
       height: 8px;
     }
 
     ::-webkit-scrollbar-track {
-      background: #1e293b;
+      background: var(--color-scrollbar-track);
     }
 
     ::-webkit-scrollbar-thumb {
-      background: #475569;
+      background: var(--color-scrollbar-thumb);
       border-radius: 4px;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-      background: #64748b;
+      background: var(--color-scrollbar-hover);
+    }
+
+    /* ── Transição global de tema ────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      transition: background-color 0.25s ease, border-color 0.25s ease, color 0.2s ease;
+    }
+
+    /* Exceções: não queremos transição em transforms/opacity para não atrasar animações */
+    img,
+    video,
+    canvas,
+    svg {
+      transition: none;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       OVERRIDES TEMA CLARO
+       Sobrescreve classes Tailwind fixas (slate-*) usadas nos
+       componentes do layout quando html.light-mode está ativo.
+    ════════════════════════════════════════════════════════ */
+
+    /* Backgrounds */
+    html.light-mode .bg-slate-800,
+    html.light-mode .bg-slate-800\/50 {
+      background-color: #f8fafc !important;
+    }
+
+    html.light-mode .bg-slate-900 {
+      background-color: #f1f5f9 !important;
+    }
+
+    html.light-mode .bg-slate-700 {
+      background-color: #e2e8f0 !important;
+    }
+
+    html.light-mode .hover\:bg-slate-800:hover {
+      background-color: #e2e8f0 !important;
+    }
+
+    html.light-mode .hover\:bg-slate-700:hover {
+      background-color: #e2e8f0 !important;
+    }
+
+    /* Bordas */
+    html.light-mode .border-slate-700,
+    html.light-mode .border-slate-700\/50,
+    html.light-mode .border-slate-600\/50,
+    html.light-mode .border-slate-600 {
+      border-color: #cbd5e1 !important;
+    }
+
+    /* Textos */
+    html.light-mode .text-slate-100 {
+      color: #0f172a !important;
+    }
+
+    html.light-mode .text-slate-200 {
+      color: #1e293b !important;
+    }
+
+    html.light-mode .text-slate-300 {
+      color: #334155 !important;
+    }
+
+    html.light-mode .text-slate-400 {
+      color: #64748b !important;
+    }
+
+    html.light-mode .text-slate-500 {
+      color: #94a3b8 !important;
+    }
+
+    html.light-mode .text-slate-600 {
+      color: #94a3b8 !important;
+    }
+
+    html.light-mode .hover\:text-slate-200:hover {
+      color: #0f172a !important;
+    }
+
+    html.light-mode .hover\:text-white:hover {
+      color: #0f172a !important;
+    }
+
+    html.light-mode .text-white {
+      color: #0f172a !important;
+    }
+
+    /* Sidebar e surface */
+    html.light-mode aside {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+    }
+
+    html.light-mode .bg-surface {
+      background-color: #ffffff !important;
+    }
+
+    html.light-mode .bg-background {
+      background-color: #f1f5f9 !important;
+    }
+
+    /* Cards internos da sidebar */
+    html.light-mode aside .rounded-xl {
+      background-color: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+    }
+
+    /* Input fields no login */
+    html.light-mode input[type="email"],
+    html.light-mode input[type="password"],
+    html.light-mode input[type="text"] {
+      background-color: #f8fafc !important;
+      border-color: #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+
+    html.light-mode input::placeholder {
+      color: #94a3b8 !important;
+    }
+
+    /* Hover states ativos */
+    html.light-mode .bg-primary\/20 {
+      background-color: rgba(59, 130, 246, 0.15) !important;
+    }
+
+    /* Separadores */
+    html.light-mode .bg-slate-700\/50 {
+      background-color: #e2e8f0 !important;
+    }
+
+    /* Divider no Login form */
+    html.light-mode .border-slate-700 {
+      border-color: #e2e8f0 !important;
+    }
+
+    /* Botão collapse da sidebar */
+    html.light-mode .bg-slate-800.border.border-slate-700 {
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
+    }
+
+    /* Scrollbar no tema claro */
+    html.light-mode .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+
+    html.light-mode .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
     }
   </style>
 </head>

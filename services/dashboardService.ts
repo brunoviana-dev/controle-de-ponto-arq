@@ -6,10 +6,11 @@ import { calculateDailyTotal } from '../utils/timeUtils';
 
 export interface DashboardNotificacao {
     id: string;
-    tipo: 'tarefa_atribuida' | 'tarefa_atrasada' | 'etapa_atrasada' | 'parcela_vencendo' | 'conta_vencendo' | 'briefing_novo';
+    tipo: 'tarefa_atribuida' | 'tarefa_atrasada' | 'etapa_atrasada' | 'parcela_vencendo' | 'conta_vencendo' | 'briefing_novo' | 'pagamento_colaborador';
     mensagem: string;
     link: string;
     referenciaId?: string;
+    extraData?: any;
 }
 
 export interface DashboardResumo {
@@ -253,6 +254,78 @@ export const getDashboardData = async (): Promise<{
                 referenciaId: b.id
             });
         });
+    }
+
+    // 6. Pagamentos de colaboradores pendentes (mês de referência)
+    const mesAtualNotif = hoje.getMonth() + 1;
+    const anoAtualNotif = hoje.getFullYear();
+    let mesRefNotif = mesAtualNotif - 1;
+    let anoRefNotif = anoAtualNotif;
+    if (mesRefNotif === 0) {
+        mesRefNotif = 12;
+        anoRefNotif = anoAtualNotif - 1;
+    }
+
+    if (isAdmin) {
+        const { data: colaboradoresData } = await supabase
+            .from('colaboradores')
+            .select('id, nome, valor_hora, valor_inss_fixo, perfil')
+            .eq('empresa_id', empresaId)
+            .neq('perfil', 'admin');
+
+        const { data: folhasMes } = await supabase
+            .from('folhas_ponto')
+            .select('colaborador_id, dias, valor_total_calculado, valor_pago_final, status_pagamento')
+            .eq('empresa_id', empresaId)
+            .eq('mes', mesRefNotif)
+            .eq('ano', anoRefNotif);
+
+        const folhasPorColab = new Map<string, any>();
+        (folhasMes || []).forEach((f: any) => folhasPorColab.set(f.colaborador_id, f));
+
+        for (const colab of (colaboradoresData || [])) {
+            const folha = folhasPorColab.get(colab.id);
+
+            // Só notifica se tiver dias registrados E não estiver pago
+            if (folha?.status_pagamento !== 'pago' && folha?.dias && Array.isArray(folha.dias) && folha.dias.some((d: any) => d.entrada1 || d.extraEntrada1)) {
+                // Cálculo simplificado de realtime para a notificação
+                let totalMinutos = 0;
+                folha.dias.forEach((d: any) => {
+                    const normal = calculateDailyTotal(d.entrada1 || '', d.saida1 || '', d.entrada2 || '', d.saida2 || '');
+                    const extra = calculateDailyTotal(d.extraEntrada1 || '', d.extraSaida1 || '', d.extraEntrada2 || '', d.extraSaida2 || '');
+                    totalMinutos += normal + extra;
+                });
+
+                const totalHoras = totalMinutos / 60;
+                const valorTotal = totalHoras * Number(colab.valor_hora || 0);
+                const valorInss = Number(colab.valor_inss_fixo || 0);
+                const totalPagar = Math.max(0, valorTotal - valorInss);
+
+                if (totalPagar > 0) {
+                    notificacoes.push({
+                        id: `pag-colab-${colab.id}`,
+                        tipo: 'pagamento_colaborador',
+                        mensagem: `Pagamento pendente para ${colab.nome}`,
+                        link: '/admin/relatorios',
+                        referenciaId: colab.id,
+                        extraData: {
+                            colaboradorId: colab.id,
+                            colaboradorNome: colab.nome,
+                            mes: mesRefNotif,
+                            ano: anoRefNotif,
+                            totalHorasNormais: 0, // Não precisamos pra esse modal
+                            totalHorasExtras: 0,
+                            totalGeral: totalMinutos,
+                            valorHora: Number(colab.valor_hora || 0),
+                            totalPagar,
+                            statusPagamento: 'pendente',
+                            valorTotalCalculado: valorTotal,
+                            valorInss
+                        }
+                    });
+                }
+            }
+        }
     }
 
     // =========================================================================

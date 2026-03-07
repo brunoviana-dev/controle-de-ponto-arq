@@ -65,3 +65,11 @@ Para garantir a melhor experiência para o usuário brasileiro, aplique as segui
     - Evite formatos americanos ou ISO na exibição final para o usuário.
 
 Sempre que possível, utilize as funções utilitárias do projeto (ex: em `utils/formataMoeda.ts` ou similares) para consistência total.
+
+## 🧪 Credenciais de Teste
+> **IMPORTANTE**: Sempre que precisar testar funcionalidades no ambiente local, utilize as seguintes credenciais:
+
+| Perfil | E-mail | Senha |
+|---|---|---|
+| **Colaborador** | `bruno.s.viana@gmail.com` | `Xbarra@002` |
+| **Cliente** | `bruno.viana@hotmail.com` | `cliente123` |

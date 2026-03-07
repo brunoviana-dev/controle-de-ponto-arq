@@ -46,3 +46,11 @@ const { data } = await supabase
 ## Tratamento de Erros
 - Sempre verifique o objeto `error` retornado pelas consultas do Supabase.
 - Lance mensagens de erro amigáveis ao usuário baseadas no código de erro do Supabase.
+
+## 🧪 Credenciais de Teste
+> **IMPORTANTE**: Sempre que precisar testar funcionalidades no ambiente local, utilize as seguintes credenciais:
+
+| Perfil | E-mail | Senha |
+|---|---|---|
+| **Colaborador** | `bruno.s.viana@gmail.com` | `Xbarra@002` |
+| **Cliente** | `bruno.viana@hotmail.com` | `cliente123` |
