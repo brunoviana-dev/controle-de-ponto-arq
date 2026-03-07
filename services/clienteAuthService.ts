@@ -37,7 +37,7 @@ export const loginCliente = async (email: string, pass: string) => {
         const { user: authUser, session: authSession } = edgeData;
 
         // 2. Verificar perfil de cliente via API REST direta
-        const clienteUrl = `${supabaseUrl}/rest/v1/clientes?auth_user_id=eq.${authUser.id}&select=id`;
+        const clienteUrl = `${supabaseUrl}/rest/v1/clientes?auth_user_id=eq.${authUser.id}&select=id,nome,empresa_id`;
         const clienteResponse = await fetch(clienteUrl, {
             headers: {
                 'apikey': supabaseAnonKey,

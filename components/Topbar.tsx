@@ -21,6 +21,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin/financeiro/contas-pagar': 'Contas a Pagar',
   '/admin/briefing-template': 'Briefing – Perguntas',
   '/admin/briefing-respostas': 'Briefing – Respostas',
+  '/area-cliente': 'Meus Projetos',
 };
 
 function getPageTitle(pathname: string): string {
@@ -35,6 +36,7 @@ function getPageTitle(pathname: string): string {
   if (pathname === '/admin/tipos-projeto/novo') return 'Novo Tipo de Projeto';
   if (pathname === '/admin/financeiro/contas-pagar/novo') return 'Nova Conta a Pagar';
   if (pathname.startsWith('/admin/financeiro/contas-pagar/')) return 'Editar Conta a Pagar';
+  if (pathname.startsWith('/area-cliente/projeto/')) return 'Detalhe do Projeto';
   return 'ArqPonto';
 }
 
@@ -147,8 +149,9 @@ const Topbar: React.FC<TopbarProps> = ({ onOpenChangePassword }) => {
   const pageTitle = getPageTitle(location.pathname);
 
   const handleLogout = () => {
+    const isCliente = user?.role === UserRole.CLIENTE;
     signOut();
-    navigate('/login');
+    navigate(isCliente ? '/area-cliente/login' : '/login');
   };
 
   // Fecha dropdowns ao clicar fora
@@ -169,7 +172,11 @@ const Topbar: React.FC<TopbarProps> = ({ onOpenChangePassword }) => {
   }, []);
 
   const userInitial = user?.name?.charAt(0).toUpperCase() ?? '?';
-  const userRole = user?.role === UserRole.ADMIN ? 'Administrador' : 'Colaborador';
+  const userRole = user?.role === UserRole.ADMIN
+    ? 'Administrador'
+    : user?.role === UserRole.CLIENTE
+      ? 'Cliente'
+      : 'Colaborador';
 
   // ── Estilos via variáveis CSS ──
   const iconBtnStyle: React.CSSProperties = {
@@ -221,10 +228,10 @@ const Topbar: React.FC<TopbarProps> = ({ onOpenChangePassword }) => {
         <HoverButton
           id="topbar-home-btn"
           title="Dashboard"
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate(user?.role === UserRole.CLIENTE ? '/area-cliente' : '/dashboard')}
           style={{
             ...iconBtnStyle,
-            color: location.pathname === '/dashboard' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+            color: (location.pathname === '/dashboard' || location.pathname === '/area-cliente') ? 'var(--color-primary)' : 'var(--color-text-muted)',
             padding: '0.4rem',
           }}
         >
@@ -251,17 +258,19 @@ const Topbar: React.FC<TopbarProps> = ({ onOpenChangePassword }) => {
 
 
         {/* Atalho Calendário */}
-        <HoverButton
-          id="topbar-calendar-btn"
-          title="Calendário"
-          style={{
-            ...iconBtnStyle,
-            color: location.pathname === '/calendario' ? 'var(--color-primary)' : 'var(--color-text-muted)',
-          }}
-          onClick={() => navigate('/calendario')}
-        >
-          <CalendarIcon />
-        </HoverButton>
+        {user?.role !== UserRole.CLIENTE && (
+          <HoverButton
+            id="topbar-calendar-btn"
+            title="Calendário"
+            style={{
+              ...iconBtnStyle,
+              color: location.pathname === '/calendario' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+            }}
+            onClick={() => navigate('/calendario')}
+          >
+            <CalendarIcon />
+          </HoverButton>
+        )}
 
         {/* Toggle de Tema */}
         <HoverButton
